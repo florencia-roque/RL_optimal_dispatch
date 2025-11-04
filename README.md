@@ -11,7 +11,7 @@ Este repositorio contiene el código, datos y resultados correspondientes al pro
 
 - **figures/**  
   Carpeta donde se generan automáticamente las figuras producidas al correr los scripts principales.  
-  *Nota:* el script `visualizadorCronica.py` **no** guarda resultados en esta carpeta, ya que es una herramienta adicional de visualización.
+  *Nota:* el script `visualizadorCronica.py` no guarda resultados en esta carpeta, ya que es una herramienta adicional de visualización.
 
 - **resultados/**  
   Almacena los resultados obtenidos para los tres algoritmos probados:  
