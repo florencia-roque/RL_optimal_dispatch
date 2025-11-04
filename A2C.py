@@ -1,9 +1,8 @@
 # type: ignore
-from sb3_contrib import RecurrentPPO
-from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
-from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor, VecNormalize
+from stable_baselines3 import A2C
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
 from stable_baselines3.common.callbacks import BaseCallback
-
+from stable_baselines3.common.vec_env import DummyVecEnv
 import os
 import time
 import numpy as np
@@ -11,21 +10,17 @@ import pandas as pd
 import gymnasium as gym
 from gymnasium import spaces
 from gymnasium.wrappers import TimeLimit
-# Seleccionar backend ANTES de importar pyplot
+import matplotlib.pyplot as plt
 import matplotlib
 from datetime import datetime
-try:
-    matplotlib.use("TkAgg")
-except Exception as e:
-    print(f"No se pudo activar TkAgg: {e}")
-import matplotlib.pyplot as plt
+matplotlib.use("TkAgg")
+
+# Activa modo interactivo
 plt.ion()
-print(f"Matplotlib backend: {matplotlib.get_backend()}")
 
 class LivePlotCallback(BaseCallback):
-    def __init__(self, verbose=0, plot_every=20):
+    def __init__(self, verbose=0):
         super().__init__(verbose)
-        self.plot_every = plot_every
 
         self.episode_rewards = []
         self.moving_avg_rewards = []
@@ -40,10 +35,7 @@ class LivePlotCallback(BaseCallback):
         self.line_avg, = self.ax.plot([], [], lw=2, label="Moving Avg (100)")
 
         self.ax.legend()
-        # Mostrar ventana sin bloquear y asegurar primer draw
-        plt.show(block=False)
-        self.fig.canvas.draw()
-        plt.pause(0.001)
+        self.fig.show()
 
     def _on_step(self) -> bool:
         infos = self.locals.get("infos", [])
@@ -69,11 +61,9 @@ class LivePlotCallback(BaseCallback):
                 self.ax.relim()
                 self.ax.autoscale_view()
 
-                # Dibuja y procesa eventos GUI cada 'plot_every' episodios
-                if len(self.episode_rewards) % self.plot_every == 0:
-                    self.fig.canvas.draw()
-                    self.fig.canvas.flush_events()
-                    plt.pause(0.001)
+                # Dibuja y procesa eventos GUI
+                self.fig.canvas.draw()
+                plt.pause(0.001)
 
         return True
     
@@ -134,13 +124,13 @@ class HydroThermalEnv(gym.Env):
         self.action_space = spaces.Box(0.0, 1.0, shape=(1,), dtype=np.float32)
         
         # Cargar datos de energías renovables y demanda
-        self.data_biomasa = leer_archivo(f"Datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=0)
+        self.data_biomasa = leer_archivo(f"datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=0)
         self.data_biomasa = self.data_biomasa.iloc[:,1:]
-        self.data_eolico = leer_archivo(f"Datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=1)
+        self.data_eolico = leer_archivo(f"datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=1)
         self.data_eolico = self.data_eolico.iloc[:,1:]
-        self.data_solar = leer_archivo(f"Datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=2)
+        self.data_solar = leer_archivo(f"datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=2)
         self.data_solar = self.data_solar.iloc[:,1:]
-        self.data_demanda = leer_archivo(f"Datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=3)
+        self.data_demanda = leer_archivo(f"datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=3)
         self.data_demanda = self.data_demanda.iloc[:,1:]
 
         # Agregar columna con promedio de crónicas
@@ -150,17 +140,17 @@ class HydroThermalEnv(gym.Env):
         self.data_demanda["PROMEDIO"] = self.data_demanda.mean(axis=1)
 
         # cargar matriz de aportes discretizada (con estado hidrológico 0,1,2,3,4)
-        self.data_matriz_aportes_discreta = leer_archivo(f"Datos\\Claire\\clasificado.csv", sep=",", header=0)
+        self.data_matriz_aportes_discreta = leer_archivo(f"datos\\Claire\\clasificado.csv", sep=",", header=0)
 
-        # self.aportes_deterministicos = leer_archivo(f"Datos\\MOP\\aportesDeterministicos.csv", sep=",", header=0)
+        # self.aportes_deterministicos = leer_archivo(f"datos\\MOP\\aportesDeterministicos.csv", sep=",", header=0)
         
         # cargar matriz de aportes continuos (unidad de los aportes de Claire: m3/s )
-        self.data_matriz_aportes_claire = leer_archivo(f"Datos\\Claire\\aporte_claire.csv", sep=",", header=0)
+        self.data_matriz_aportes_claire = leer_archivo(f"datos\\Claire\\aporte_claire.csv", sep=",", header=0)
         # convertir a unidad hm3/h
         self.data_matriz_aportes_claire = self.data_matriz_aportes_claire * 3600 / 1e6
 
         # Cargar datos de matrices hidrológicas con las probabilidades de transición entre estados
-        self.data_matrices_hidrologicas = leer_archivo(f"Datos\\Claire\\matrices_sem.csv", sep=",", header=0)
+        self.data_matrices_hidrologicas = leer_archivo(f"datos\\Claire\\matrices_sem.csv", sep=",", header=0)
         self.data_matrices_hidrologicas = self.data_matrices_hidrologicas.iloc[:, 1:] # Quito la columna de semanas
         self.matrices_hidrologicas = {}
         for i in range(self.data_matrices_hidrologicas.shape[0]):
@@ -168,7 +158,7 @@ class HydroThermalEnv(gym.Env):
             self.matrices_hidrologicas[i] = array_1d.reshape(5, 5) 
 
         # Leer archivo de aportes historicos
-        self.datos_historicos = leer_archivo(f"Datos\\MARKOV\\Salidas\\MARKOV_CLAIRE_HIST\\datosHistoricosAportes.xlsx", header=7)
+        self.datos_historicos = leer_archivo(f"datos\\MARKOV\\Salidas\\MARKOV_CLAIRE_HIST\\datosHistoricosAportes.xlsx", header=7)
 
         self.indice_inicial_episodio = 0
         self.episodios_recorridos = 0
@@ -506,39 +496,20 @@ def make_eval_env():
 def entrenar():
     print("Comienzo de entrenamiento...")
     t0 = time.perf_counter()
-    # vectorizado de entrenamiento (usar DummyVecEnv en Windows para evitar sobrecarga de procesos)
+    # vectorizado de entrenamiento (8 envs en procesos separados)
     n_envs = 8
-    vec_env = DummyVecEnv([make_train_env for _ in range(n_envs)])
+    vec_env = SubprocVecEnv([make_train_env for _ in range(n_envs)])
     vec_env = VecMonitor(vec_env)
-    vec_env = VecNormalize(vec_env, norm_obs=True, norm_reward=True, clip_obs=10.0)  # <<< normaliza
 
-    # Definir una arquitectura de red más grande
-    policy_kwargs = dict(
-        lstm_hidden_size=128,
-        n_lstm_layers=1,
-        net_arch=dict(pi=[128], vf=[128]),
-    )
-
-    model = RecurrentPPO(
-        MlpLstmPolicy,
-        vec_env,
-        policy_kwargs=policy_kwargs,
-        verbose=1,
-        n_steps=104,       
-        gamma=0.99,         # mira mas lejos
-        ent_coef=0.005,      # evita colapso temprano a extremos
-        learning_rate=3e-4,
-        device="auto"       # usa GPU si hay
-    )
+    model = A2C("MlpPolicy", vec_env, verbose=1, n_steps=104, learning_rate=3e-4, gamma=0.999, device="auto")
 
     # calcular total_timesteps: por ejemplo 2000 episodios * 104 pasos
-    total_episodes = 2000
+    total_episodes = 5000
     total_timesteps = total_episodes * (HydroThermalEnv.T_MAX + 1)
 
-    callback = LivePlotCallback(plot_every=1)
+    callback = LivePlotCallback()
     model.learn(total_timesteps=total_timesteps, callback=callback)
-    model.save("RecurrentPPO_hydro_thermal_claire_continuous")
-    vec_env.save("vecnorm.pkl")  # <<< guarda stats
+    model.save("a2c_hydro_thermal_claire")
 
     dt = time.perf_counter() - t0
     dt /= 60  # convertir a minutos
@@ -549,17 +520,17 @@ def cargar_o_entrenar_modelo(model_path):
     if os.path.exists(f"{model_path}.zip"):
         try:
             print(f"Cargando modelo desde {model_path}...")
-            model = RecurrentPPO.load(model_path)
+            model = A2C.load(model_path)
             print("Modelo cargado exitosamente.")
         except Exception as e:
             print(f"Error al cargar el modelo: {e}")
             print("Entrenando un modelo nuevo...")
             entrenar()
-            model = RecurrentPPO.load(model_path)
+            model = A2C.load(model_path)
     else:
         print("Archivo del modelo no encontrado, entrenando uno nuevo...")
         entrenar()
-        model = RecurrentPPO.load(model_path)
+        model = A2C.load(model_path)
 
     return model
 
@@ -580,12 +551,7 @@ def evaluar_modelo(model, eval_env, modo_evaluacion="markov", n_eval_episodes=10
     episode_id = np.zeros(n_envs, dtype=int)  # para identificar episodios en df_all
 
     while episodios_cerrados < n_eval_episodes:
-        action, state = model.predict(
-            obs,
-            state=state,
-            episode_start=episode_start,  # MUY importante para LSTM
-            deterministic=True
-        )
+        action, _ = model.predict(obs, deterministic=True)
         obs, rewards, dones, infos = eval_env.step(action)
 
         # normalizamos formas
@@ -712,7 +678,7 @@ if __name__ == "__main__":
     resultados_promedio = os.path.join(carpeta,"promedios")
     os.makedirs(resultados_promedio, exist_ok=True)
 
-    MODEL_PATH = "RecurrentPPO_hydro_thermal_claire_continuous"
+    MODEL_PATH = "a2c_hydro_thermal_claire"
     EVAL_CSV_PATH = os.path.join(resultados_promedio,"trayectorias.csv")
     EVAL_CSV_ENERGIAS_PATH = os.path.join(resultados_promedio,"energias.csv")
     EVAL_CSV_ESTADOS_PATH = os.path.join(resultados_promedio,"estados.csv")
@@ -725,17 +691,8 @@ if __name__ == "__main__":
     # Evaluar el modelo
     print("Iniciando evaluación del modelo...")
    
-    eval_env_bef_dummy = make_eval_env()
-    eval_env = DummyVecEnv([lambda: eval_env_bef_dummy])
-    try:
-        eval_env = VecNormalize.load("vecnorm.pkl", eval_env)
-        eval_env.training = False
-        eval_env.norm_reward = False
-        print("VecNormalize cargado para evaluación.")
-    except Exception as e:
-        print(f"No se pudo cargar VecNormalize: {e}")
-
-    inner_env = eval_env_bef_dummy.unwrapped
+    eval_env = DummyVecEnv([make_eval_env])
+    inner_env = eval_env.envs[0].unwrapped 
     df_eval, df_all = evaluar_modelo(model, eval_env, inner_env.MODO, n_eval_episodes=114)
     df_eval["reward_usd"] = df_eval["reward"] * 1e6
 

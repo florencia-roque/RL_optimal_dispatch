@@ -1,4 +1,8 @@
 # type: ignore
+from sb3_contrib import RecurrentPPO
+from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
+from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor, VecNormalize
+from stable_baselines3.common.callbacks import BaseCallback
 
 import os
 import time
@@ -7,66 +11,76 @@ import pandas as pd
 import gymnasium as gym
 from gymnasium import spaces
 from gymnasium.wrappers import TimeLimit
-import matplotlib.pyplot as plt
+# Seleccionar backend ANTES de importar pyplot
 import matplotlib
 from datetime import datetime
-matplotlib.use("TkAgg")
+try:
+    matplotlib.use("TkAgg")
+except Exception as e:
+    print(f"No se pudo activar TkAgg: {e}")
+import matplotlib.pyplot as plt
+plt.ion()
+print(f"Matplotlib backend: {matplotlib.get_backend()}")
 
-# --- Plotter simple de recompensas por episodio ---
-class LiveRewardPlotter:
-    def __init__(self, window=100, refresh_every=10, title=None):
-        self.window = window
-        self.refresh_every = refresh_every
-        self.rewards_ep = []
-        self.moving_avg = []
-        plt.ion()
-        # === Configuración global de estilo ===
+class LivePlotCallback(BaseCallback):
+    def __init__(self, verbose=0, plot_every=20):
+        super().__init__(verbose)
+        self.plot_every = plot_every
 
-        plt.rcParams.update({
-            "font.size": 20,
-            "axes.titlesize": 22,
-            "axes.labelsize": 10,
-            "xtick.labelsize": 8,
-            "ytick.labelsize": 8,
-            "legend.fontsize": 10,
-        })
+        self.episode_rewards = []
+        self.moving_avg_rewards = []
 
-        self.fig, self.ax = plt.subplots(figsize=(14, 6), dpi=400)
-        self.ax.set_xlabel("Episode", labelpad=8)
-        self.ax.set_ylabel("Reward (MUSD)", labelpad=8)
-        self.ax.set_title(title, pad=8)
+        self.fig, self.ax = plt.subplots(figsize=(10, 8))
+        self.ax.set_xlabel("Episodio")
+        self.ax.set_ylabel("Recompensa por episodio")
+        self.ax.set_title("Entrenamiento del Agente")
         self.ax.grid(True)
 
-        (self.line,) = self.ax.plot([], [], lw=1, label="Reward")
-        (self.line_avg,) = self.ax.plot([], [], lw=2, label=f"Moving average ({window})")
+        self.line, = self.ax.plot([], [], lw=1, label="Reward")
+        self.line_avg, = self.ax.plot([], [], lw=2, label="Moving Avg (100)")
+
         self.ax.legend()
-        self.fig.show()
-
-    def update(self, r):
-        self.rewards_ep.append(float(r))
-        # media móvil
-        w = min(self.window, len(self.rewards_ep))
-        self.moving_avg.append(np.mean(self.rewards_ep[-w:]))
-
-        if(len(self.rewards_ep) + 1 == 3000):
-            print(f"La media de la recompensa converge a aproximadamente {self.moving_avg[-1]} en entrenamiento")
-
-        # refrescar cada N episodios
-        if len(self.rewards_ep) % self.refresh_every == 0:
-            x = np.arange(1, len(self.rewards_ep) + 1)
-            self.line.set_data(x, self.rewards_ep)
-            self.line_avg.set_data(x, self.moving_avg)
-            self.ax.relim()
-            self.ax.autoscale_view()
-            self.fig.canvas.draw()
-            self.fig.canvas.flush_events()
-            plt.pause(0.001)
-
-    def close(self, filename="figures/paper/training_est"):
-        self.fig.savefig(filename, dpi=400, bbox_inches="tight")
-        self.fig.savefig(f"{filename}.pdf", bbox_inches="tight")
-        plt.ioff()
+        # Mostrar ventana sin bloquear y asegurar primer draw
         plt.show(block=False)
+        self.fig.canvas.draw()
+        plt.pause(0.001)
+
+    def _on_step(self) -> bool:
+        infos = self.locals.get("infos", [])
+        for info in infos:
+            if "episode" in info:
+                r = info["episode"]["r"]
+                self.episode_rewards.append(r)
+
+                window = 100
+                if len(self.episode_rewards) >= window:
+                    avg = np.mean(self.episode_rewards[-window:])
+                else:
+                    avg = np.mean(self.episode_rewards)
+                self.moving_avg_rewards.append(avg)
+
+                # Actualiza datos
+                x = list(range(len(self.episode_rewards)))
+                y = self.episode_rewards
+                self.line.set_data(x, y)
+                self.line_avg.set_data(x, self.moving_avg_rewards)
+
+                # Ajusta ejes
+                self.ax.relim()
+                self.ax.autoscale_view()
+
+                # Dibuja y procesa eventos GUI cada 'plot_every' episodios
+                if len(self.episode_rewards) % self.plot_every == 0:
+                    self.fig.canvas.draw()
+                    self.fig.canvas.flush_events()
+                    plt.pause(0.001)
+
+        return True
+    
+    def _on_training_end(self) -> None:
+        # Desactiva el modo interactivo y muestra block hasta que se cierre la ventana
+        plt.ioff()
+        plt.show()
 
 # Leer archivo 
 def leer_archivo(rutaArchivo, sep=None, header=0, sheet_name=0):
@@ -108,31 +122,25 @@ class HydroThermalEnv(gym.Env):
     MODO = "markov"
 
     def __init__(self):
-        self.N_BINS_VOL = 10
-        self.VOL_EDGES = np.linspace(self.V_CLAIRE_MIN, self.V_CLAIRE_MAX, self.N_BINS_VOL + 1)
-        self.N_STATES = self.N_BINS_VOL*self.N_HIDRO*(self.T_MAX+1)
-        self.N_ACTIONS = 20
-        self.Q = np.zeros((self.N_STATES, self.N_ACTIONS))
-
-        self.alpha = 0.001   # learning rate
-        self.gamma = 0.99  # discount
-        self.epsilon = 0.01 # exploración
 
         # Espacio de observación
-        self.observation_space = spaces.Discrete(self.N_STATES)
+        self.observation_space = spaces.Dict({
+            "volumen": spaces.Box(self.V_CLAIRE_MIN, self.V_CLAIRE_MAX, shape=(), dtype=np.float32),
+            "hidrologia": spaces.Discrete(self.N_HIDRO, start=0),
+            "tiempo": spaces.Discrete(self.T_MAX + 1, start=0)
+        })
         
-        # Fracción a turbinar del volumen del embalse
-        # El agente puede turbinar entre los niveles 0, 1, ..., 39
-        self.action_space = spaces.Discrete(self.N_ACTIONS)
-
+        # Espacio de acción continuo: fracción de turbinado en [0, 1]
+        self.action_space = spaces.Box(0.0, 1.0, shape=(1,), dtype=np.float32)
+        
         # Cargar datos de energías renovables y demanda
-        self.data_biomasa = leer_archivo(f"Datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=0)
+        self.data_biomasa = leer_archivo(f"datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=0)
         self.data_biomasa = self.data_biomasa.iloc[:,1:]
-        self.data_eolico = leer_archivo(f"Datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=1)
+        self.data_eolico = leer_archivo(f"datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=1)
         self.data_eolico = self.data_eolico.iloc[:,1:]
-        self.data_solar = leer_archivo(f"Datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=2)
+        self.data_solar = leer_archivo(f"datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=2)
         self.data_solar = self.data_solar.iloc[:,1:]
-        self.data_demanda = leer_archivo(f"Datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=3)
+        self.data_demanda = leer_archivo(f"datos\\MOP\\Deterministicos3anios.xlsx", header=0, sheet_name=3)
         self.data_demanda = self.data_demanda.iloc[:,1:]
 
         # Agregar columna con promedio de crónicas
@@ -142,17 +150,17 @@ class HydroThermalEnv(gym.Env):
         self.data_demanda["PROMEDIO"] = self.data_demanda.mean(axis=1)
 
         # cargar matriz de aportes discretizada (con estado hidrológico 0,1,2,3,4)
-        self.data_matriz_aportes_discreta = leer_archivo(f"Datos\\Claire\\clasificado.csv", sep=",", header=0)
+        self.data_matriz_aportes_discreta = leer_archivo(f"datos\\Claire\\clasificado.csv", sep=",", header=0)
 
-        self.aportes_deterministicos = leer_archivo(f"Datos\\MOP\\aportesDeterministicos.xlsx", sep=",", header=0)
+        # self.aportes_deterministicos = leer_archivo(f"datos\\MOP\\aportesDeterministicos.csv", sep=",", header=0)
         
         # cargar matriz de aportes continuos (unidad de los aportes de Claire: m3/s )
-        self.data_matriz_aportes_claire = leer_archivo(f"Datos\\Claire\\aporte_claire.csv", sep=",", header=0)
+        self.data_matriz_aportes_claire = leer_archivo(f"datos\\Claire\\aporte_claire.csv", sep=",", header=0)
         # convertir a unidad hm3/h
         self.data_matriz_aportes_claire = self.data_matriz_aportes_claire * 3600 / 1e6
 
         # Cargar datos de matrices hidrológicas con las probabilidades de transición entre estados
-        self.data_matrices_hidrologicas = leer_archivo(f"Datos\\Claire\\matrices_sem.csv", sep=",", header=0)
+        self.data_matrices_hidrologicas = leer_archivo(f"datos\\Claire\\matrices_sem.csv", sep=",", header=0)
         self.data_matrices_hidrologicas = self.data_matrices_hidrologicas.iloc[:, 1:] # Quito la columna de semanas
         self.matrices_hidrologicas = {}
         for i in range(self.data_matrices_hidrologicas.shape[0]):
@@ -160,7 +168,7 @@ class HydroThermalEnv(gym.Env):
             self.matrices_hidrologicas[i] = array_1d.reshape(5, 5) 
 
         # Leer archivo de aportes historicos
-        self.datos_historicos = leer_archivo(f"Datos\\MARKOV\\Salidas\\MARKOV_CLAIRE_HIST\\datosHistoricosAportes.xlsx", header=7)
+        self.datos_historicos = leer_archivo(f"datos\\MARKOV\\Salidas\\MARKOV_CLAIRE_HIST\\datosHistoricosAportes.xlsx", header=7)
 
         self.indice_inicial_episodio = 0
         self.episodios_recorridos = 0
@@ -180,14 +188,12 @@ class HydroThermalEnv(gym.Env):
             raise ValueError("modo debe ser 'markov' u 'historico'")
 
         self.volumen = self.V0
-        self.volumen_discreto = discretizar_volumen(self,self.V0)
         self.tiempo = 0
         self.hidrologia = self._inicial_hidrologia()
         self.hidrologia_anterior = self.hidrologia
 
         info = {
             "volumen_inicial": self.volumen,
-            "volumen_discreto_inicial": self.volumen_discreto,
             "hidrologia_inicial": self.hidrologia,
             "tiempo_inicial": self.tiempo
         }
@@ -195,22 +201,19 @@ class HydroThermalEnv(gym.Env):
         return self._get_obs(), info
     
     def _inicial_hidrologia(self):
-        if self.MODO == "markov" and self.DETERMINISTICO == 0:
+        if self.MODO == "markov":
             # retorna el estado inicial del estado hidrológico 0,1,2,3,4
             return np.int64(2)
-        elif self.MODO == "historico" and self.DETERMINISTICO == 0:
+        else:
             try:
                 # modo datos historicos
                 return self.datos_historicos.iloc[self.indice_inicial_episodio,3]
             except:
                 return 0
-            
-        elif self.DETERMINISTICO == 1:
-            return self.aportes_deterministicos.iloc[self.tiempo,1]
 
     def _siguiente_hidrologia(self):
         self.hidrologia_anterior = self.hidrologia
-        if self.MODO == "markov" and self.DETERMINISTICO == 0:
+        if self.MODO == "markov":
             # retorna el estado hidrológico siguiente 0,1,2,3,4
             # array con las clases 0,1,2,3,4
             clases = np.arange(self.matrices_hidrologicas[self.tiempo % 52].shape[0])
@@ -220,17 +223,15 @@ class HydroThermalEnv(gym.Env):
                 p=self.matrices_hidrologicas[self.tiempo % 52][self.hidrologia,:]
             )
 
-        elif self.MODO == "historico" and self.DETERMINISTICO == 0:
+        else:
+            # modo datos historicos
+        
             hidrologia_siguiente = self.datos_historicos.iloc[self.indice_inicial_episodio + self.tiempo, 3] 
-
-        elif self.DETERMINISTICO == 1:
-            hidrologia_siguiente = self.aportes_deterministicos.iloc[self.tiempo+1,1]
 
         return hidrologia_siguiente
     
     def _aporte(self):
-        # MODO MARKOV PUEDE USARSE PARA ENTRENAR O EVALUAR
-        if self.MODO == "markov" and self.DETERMINISTICO == 0:
+        if self.MODO == "markov":
             # guardo fila de estados para la semana actual
             estados_t = self.data_matriz_aportes_discreta.loc[self.tiempo % 52] 
 
@@ -255,20 +256,24 @@ class HydroThermalEnv(gym.Env):
                 aporte_final = aportes_promedio
             else:
             # sorteo uniformemente uno de los validos
-                aporte_final = self.np_random.choice(aportes_validos)*168
+                aporte_final = self.np_random.choice(aportes_validos)
             
-            return aporte_final
-            
-        # SOLO PARA EVALUAR CON LA HISTORIA HABIENDO ENTRENADO CON MARKOV 
-        # NO SE ENTRENA CON LA HISTORIA 
-        elif self.MODO == "historico" and self.DETERMINISTICO == 0:
-            return self.datos_historicos.iloc[self.indice_inicial_episodio + self.tiempo, 2] * 3600 * 168 / 1e6 # hm3/semana
+            # TO-DO: Poner los valores de aportes deterministicos para 3 años
+            # valor = self.aportes_deterministicos.iloc[self.tiempo , 0] # hm3/semana
         
-        # SIRVE PARA ENTRENAR Y EVALUAR CON LA TIRA DE APORTES DETERMINISTICOS
-        elif self.DETERMINISTICO == 1:    
-            valor = self.aportes_deterministicos.iloc[self.tiempo , 0] * 3600 * 168 / 1e6 # hm3/semana
-            return valor
+            # if pd.isna(valor):
+            #     valor = 0.0
+            #     print("OJO OJO OJO no encontro valor de aporte determnistico")
+            #     print("paso: ", self.tiempo)
+    
+            if(self.DETERMINISTICO == 1):    
+                return valor
+            else:
+                return aporte_final * 168
             
+        else:
+            # modo datos historicos
+            return self.datos_historicos.iloc[self.indice_inicial_episodio + self.tiempo, 2] * 3600 * 168 / 1e6 # hm3/semana
 
     def _demanda(self):
         # Obtener demanda de energía para el tiempo actual según la cronica sorteada
@@ -348,18 +353,10 @@ class HydroThermalEnv(gym.Env):
         return ingreso_exportacion, costo_termico, energia_exportada, energia_termico_bajo, energia_termico_alto, energia_hidro
 
     def step(self, action):
-        # === Normalizar acción a entero escalar 0..n-1 ===
-        if isinstance(action, (np.ndarray, list, tuple)):
-            # [0.], [2.0] → 0, 2
-            action = int(np.asarray(action).squeeze().item())
-        else:
-            action = int(action)
-
-        assert self.action_space.contains(action), f"Acción inválida: {action}"
-
-        # Volumen a turbinar
-
-        frac = action /  (self.N_ACTIONS-1)   # mapea a 0.0, 0.25, 0.5, 0.75, 1.0
+        # Validar que la acción esté en el espacio válido
+        action = np.array(action, dtype=np.float32).reshape(1,)
+        assert self.action_space.contains(action), f"Acción inválida: {action}. Debe estar en {self.action_space}"
+        frac = float(action[0])
 
         # Demanda residual considerando solo renovables (sin hidro)
         demanda_residual_pre = max(self._demanda() - self._gen_renovable(), 0.0)  # MWh
@@ -377,7 +374,6 @@ class HydroThermalEnv(gym.Env):
 
         info = {
             "volumen": self.volumen,
-            "volumen_discreto": self.volumen_discreto,
             "hidrologia": self.hidrologia,
             "tiempo": self.tiempo,
             "volumen_turbinado": qt,
@@ -407,7 +403,6 @@ class HydroThermalEnv(gym.Env):
         v_intermedio = self.volumen - qt + aporte_paso
         self.vertimiento = max(v_intermedio - self.V_CLAIRE_MAX, 0) 
         self.volumen = min(v_intermedio, self.V_CLAIRE_MAX) # hm3
-        self.volumen_discreto = discretizar_volumen(self,self.volumen)
         self.tiempo += 1
         
         info["aportes"] = aporte_paso
@@ -440,44 +435,44 @@ class HydroThermalEnv(gym.Env):
         
     def _get_obs(self):
         # Mapeo de variables internas a observación del agente
-        idx = codificar_estados(self.volumen_discreto,self.N_BINS_VOL,self.hidrologia,self.N_HIDRO,self.tiempo)
+        obs = {
+            "volumen": np.array(self.volumen, dtype=np.float32),
+            "hidrologia": int(self.hidrologia),
+            "tiempo": int(self.tiempo)
+        }
         
-        if not self.observation_space.contains(idx):
-            print(f"[DEBUG] idx={idx}, t={self.tiempo}, h={self.hidrologia}, vbin={self.volumen_discreto}")
-
-
-        # Validar contra observation_space
-        assert self.observation_space.contains(idx), f"Observación inválida: {idx}. Debe estar en {self.observation_space}"
-        return idx
-
-def discretizar_volumen(env, v: float) -> int:
-    # Asigna v a un bin en [0..5] usando bordes reales VOL_EDGES
-    b = np.digitize([v], env.VOL_EDGES, right=False)[0] - 1
-    return int(np.clip(b, 0, env.N_BINS_VOL - 1))
+        # Validar contra observation_space (opcional, útil para debug)
+        assert self.observation_space.contains(obs), f"Observación inválida: {obs}. Debe estar en {self.observation_space}"
+        return obs
     
-def codificar_estados(volumen_discreto,N_BINS_VOL,hidrologia,N_HIDRO,tiempo):
-    # representar con un numero entre 0 y idx la tupla (v, h, t)
-    idx = volumen_discreto + N_BINS_VOL * (hidrologia + N_HIDRO * tiempo)
-    return idx
-    
-def decodificar_estados(env):
-    # es la inversa de codificar_estados_aplanando, devuelve (v, h, t) a partir de idx
-    volumen = env.idx % env.N_BINS_VOL
-    hidrologia = (env.idx // env.N_BINS_VOL) % env.N_HIDRO
-    tiempo    = env.idx // (env.N_BINS_VOL * env.N_HIDRO)
-    return (int(volumen), int(hidrologia), int(tiempo))
+class OneHotFlattenObs(gym.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        # 1, n_hidro para one-hot de hidrología, T_MAX + 1 para one-hot de tiempo
+        dim = 1 + HydroThermalEnv.N_HIDRO + HydroThermalEnv.T_MAX + 1
+        self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(dim,), dtype=np.float32)
 
-def politica_optima(Q):
-    policy = Q.argmax(axis=1)
-    return policy
-    
-def politica_cubo(env,policy):
-    inner_env = env.unwrapped
-    policy_cube = policy.reshape(inner_env.T_MAX+1, inner_env.N_HIDRO, inner_env.N_BINS_VOL)  # [t, h, v]
-    return policy_cube
+    def observation(self, obs):
+        # Normalizar volumen
+        v = float(obs["volumen"])
+        v_norm = v / HydroThermalEnv.V_CLAIRE_MAX
+
+        # One-Hot encoding Hidrologia
+        h = obs["hidrologia"]
+        hidro_oh = np.zeros(HydroThermalEnv.N_HIDRO, dtype=np.float32) 
+        hidro_oh[h] = 1.0
+
+        # One-Hot encoding Tiempo
+        semana = obs["tiempo"]
+        time_oh = np.zeros(HydroThermalEnv.T_MAX + 1, dtype=np.float32)
+        time_oh[semana] = 1.0
+
+        obs_res = np.concatenate(([v_norm], hidro_oh, time_oh), axis=0)
+        return obs_res
 
 def make_train_env():
     env = HydroThermalEnv()
+    env = OneHotFlattenObs(env)
     env = TimeLimit(env, max_episode_steps=HydroThermalEnv.T_MAX+1)
     inner_env = env.unwrapped
     inner_env.MODO = "markov"
@@ -485,121 +480,151 @@ def make_train_env():
 
 def make_eval_env():
     env = HydroThermalEnv()
+    env = OneHotFlattenObs(env)
     env = TimeLimit(env, max_episode_steps=HydroThermalEnv.T_MAX+1)
     inner_env = env.unwrapped
 
-    if inner_env.DETERMINISTICO == 0:
-        # Pedir modo de evaluacion al usuario
-        modo_eval = input("Ingrese modo de evaluación M para Markov o H para historico: ").strip().lower()
+    # Pedir modo de evaluacion al usuario
+    modo_eval = input("Ingrese modo de evaluación M para Markov o H para historico: ").strip().lower()
 
-        # Validar y asignar
-        if modo_eval in ["m", "h"]:
+    # Validar y asignar
+    if modo_eval in ["m", "h"]:
 
-            if modo_eval == "m":
-                modo_eval = "markov"
-            else:
-                modo_eval = "historico"
-
-            inner_env.MODO = modo_eval
-            
-            print(f"Modo de evaluación seteado en: {inner_env.MODO}")
+        if modo_eval == "m":
+            modo_eval = "markov"
         else:
-            print("Opción inválida, se mantiene el valor por defecto:", HydroThermalEnv.MODO)
+            modo_eval = "historico"
+
+        inner_env.MODO = modo_eval
+        
+        print(f"Modo de evaluación seteado en: {inner_env.MODO}")
+    else:
+        print("Opción inválida, se mantiene el valor por defecto:", HydroThermalEnv.MODO)
 
     return env
 
-def entrenar(env):
+def entrenar():
     print("Comienzo de entrenamiento...")
     t0 = time.perf_counter()
+    # vectorizado de entrenamiento (usar DummyVecEnv en Windows para evitar sobrecarga de procesos)
+    n_envs = 8
+    vec_env = DummyVecEnv([make_train_env for _ in range(n_envs)])
+    vec_env = VecMonitor(vec_env)
+    vec_env = VecNormalize(vec_env, norm_obs=True, norm_reward=True, clip_obs=10.0)  # <<< normaliza
 
-    # calcular total_timesteps: por ejemplo 5000 episodios * 104 pasos
-    total_episodes = 3000
+    # Definir una arquitectura de red más grande
+    policy_kwargs = dict(
+        lstm_hidden_size=128,
+        n_lstm_layers=1,
+        net_arch=dict(pi=[128], vf=[128]),
+    )
 
-    plotter = LiveRewardPlotter(window=100, refresh_every=20)
+    model = RecurrentPPO(
+        MlpLstmPolicy,
+        vec_env,
+        policy_kwargs=policy_kwargs,
+        verbose=1,
+        n_steps=104,       
+        gamma=0.99,         # mira mas lejos
+        ent_coef=0.005,      # evita colapso temprano a extremos
+        learning_rate=3e-4,
+        device="auto"       # usa GPU si hay
+    )
 
-    for episode in range(total_episodes):
+    # calcular total_timesteps: por ejemplo 2000 episodios * 104 pasos
+    total_episodes = 2000
+    total_timesteps = total_episodes * (HydroThermalEnv.T_MAX + 1)
 
-        if episode % 1000 == 0:
-            print("Episodio: ", episode)
-            
-        inner_env = env.unwrapped
-        inner_env.reset()
-        inner_env.idx = codificar_estados(inner_env.volumen_discreto,inner_env.N_BINS_VOL,inner_env.hidrologia,inner_env.N_HIDRO,inner_env.tiempo)
-
-        done = False
-        reward_episodio = 0.0
-
-        while not done:
-            # 1 con probabilidad epsilon
-            explorar = np.random.binomial(1,inner_env.epsilon)
-
-            if explorar == 1:
-                a = np.random.randint(inner_env.N_ACTIONS)
-            else:
-                a = np.argmax(inner_env.Q[inner_env.idx])
-
-            # tomar acción en el ambiente
-            _, reward, terminated, truncated, _ = inner_env.step(a)
-            done = terminated or truncated
-
-            next_idx = codificar_estados(inner_env.volumen_discreto,inner_env.N_BINS_VOL,inner_env.hidrologia,inner_env.N_HIDRO,inner_env.tiempo)
-
-            # actualización Q-learning
-            inner_env.Q[inner_env.idx, a] += inner_env.alpha * (reward + inner_env.gamma * np.max(inner_env.Q[next_idx]) - inner_env.Q[inner_env.idx, a])
-            reward_episodio += reward
-            inner_env.idx = next_idx
-        
-        plotter.update(reward_episodio)
+    callback = LivePlotCallback(plot_every=1)
+    model.learn(total_timesteps=total_timesteps, callback=callback)
+    model.save("RecurrentPPO_hydro_thermal_claire_continuous")
+    vec_env.save("vecnorm.pkl")  # <<< guarda stats
 
     dt = time.perf_counter() - t0
     dt /= 60  # convertir a minutos
-    print(f"Entrenamiento completado en {dt:.2f} minutos")    
+    print(f"Entrenamiento completado en {dt:.2f} minutos")
 
-    plotter.close()
-    return inner_env.Q
+def cargar_o_entrenar_modelo(model_path):
+    # Verificar si el archivo del modelo existe
+    if os.path.exists(f"{model_path}.zip"):
+        try:
+            print(f"Cargando modelo desde {model_path}...")
+            model = RecurrentPPO.load(model_path)
+            print("Modelo cargado exitosamente.")
+        except Exception as e:
+            print(f"Error al cargar el modelo: {e}")
+            print("Entrenando un modelo nuevo...")
+            entrenar()
+            model = RecurrentPPO.load(model_path)
+    else:
+        print("Archivo del modelo no encontrado, entrenando uno nuevo...")
+        entrenar()
+        model = RecurrentPPO.load(model_path)
 
-def evaluar_modelo(Q, eval_env, modo_evaluacion="markov", num_pasos=155, n_eval_episodes=100):
-    inner_env = eval_env.unwrapped
+    return model
 
-    if inner_env.DETERMINISTICO == 0:
-        print("Evaluando con modo:", modo_evaluacion)
-
+def evaluar_modelo(model, eval_env, modo_evaluacion="markov", n_eval_episodes=100):
+    print("Evaluando con modo:", modo_evaluacion)
     resultados_todos_episodios = []
-    recompensa_total = []
+    recompensas_ep = []
 
-    politica = politica_optima(Q)
+    n_envs = getattr(eval_env, "num_envs", 1)
 
-    print(f"Evaluando durante {n_eval_episodes} episodios...")
-    for i in range(n_eval_episodes):
-        _, info = inner_env.reset()
-        recompensa_episodio = 0
-            
-        for _ in range(num_pasos + 1):
+    # Un solo reset al inicio
+    obs = eval_env.reset()
+    state = None
+    episode_start = np.ones((n_envs,), dtype=bool)
 
-            action = politica[codificar_estados(inner_env.volumen_discreto,inner_env.N_BINS_VOL,inner_env.hidrologia,inner_env.N_HIDRO,inner_env.tiempo)]
-            _, reward, done, _, info = inner_env.step(action)
-            resultado_paso = info.copy()
-            resultado_paso["action"] = action
-            resultado_paso["reward"] = reward
-            recompensa_episodio += reward
-            resultados_todos_episodios.append(resultado_paso)
+    episodios_cerrados = 0
+    recompensa_acum = np.zeros(n_envs, dtype=float)
+    episode_id = np.zeros(n_envs, dtype=int)  # para identificar episodios en df_all
 
-            if done:
-                break
-            
-        recompensa_total.append(recompensa_episodio)
-        
-    # Calcular y mostrar recompensa promedio por episodio
-    recompensa_promedio = np.mean(recompensa_total)
-    recompensa_std = np.std(recompensa_total)
-    print(f"Recompensa promedio por episodio: {recompensa_promedio:.2f} +/- {recompensa_std:.2f}")
+    while episodios_cerrados < n_eval_episodes:
+        action, state = model.predict(
+            obs,
+            state=state,
+            episode_start=episode_start,  # MUY importante para LSTM
+            deterministic=True
+        )
+        obs, rewards, dones, infos = eval_env.step(action)
 
-    # Convertir todo a un único DataFrame
+        # normalizamos formas
+        rewards_np = np.asarray(rewards).reshape(-1)
+        dones_np = np.asarray(dones).reshape(-1)
+        acts = np.asarray(action)
+
+        # acumulo recompensa y logueo por env
+        recompensa_acum += rewards_np
+        for i in range(n_envs):
+            info_i = infos[i] if isinstance(infos, (list, tuple)) else infos
+
+            # acción como escalar si es 1-D
+            if acts.ndim == 1:
+                act_i = float(acts[i])
+            else:
+                flat = acts[i].reshape(-1)
+                act_i = float(flat[0]) if flat.size else np.nan
+
+            fila = dict(info_i)
+            fila["action"] = act_i
+            fila["reward"] = float(rewards_np[i])
+            fila["episode_id"] = int(episode_id[i])
+            resultados_todos_episodios.append(fila)
+
+        # SB3 necesita saber si empieza episodio nuevo (para resetear el estado LSTM)
+        episode_start = dones_np
+
+        # cierro episodios que terminaron (el VecEnv ya los reseteó solo)
+        for i in range(n_envs):
+            if dones_np[i]:
+                recompensas_ep.append(recompensa_acum[i])
+                recompensa_acum[i] = 0.0
+                episodios_cerrados += 1
+                episode_id[i] += 1
+
+    # DataFrames de salida
     df_all = pd.DataFrame(resultados_todos_episodios)
-
-    # Calcular el promedio por paso de tiempo
-    df_avg = df_all.groupby("tiempo").mean().reset_index()
-                
+    df_avg = df_all.groupby("tiempo", as_index=False).mean(numeric_only=True)
     return df_avg, df_all
 
 def guardar_trayectorias(fecha_hora, df_trayectorias, output_dir="figures"):
@@ -610,18 +635,71 @@ def guardar_trayectorias(fecha_hora, df_trayectorias, output_dir="figures"):
     if not os.path.exists(fig_fecha_hora):
         os.makedirs(fig_fecha_hora)
 
-    df_trayectorias_copy = df_trayectorias.copy()
-    tiempos = df_trayectorias_copy.pop("tiempo")
+    # Función auxiliar para “aplanar” valores a escalares cuando sea posible
+    def to_scalar(v):
+        if isinstance(v, (np.generic,)):  # np.float64, np.int64, etc.
+            return v.item()
+        if isinstance(v, np.ndarray):
+            if v.ndim == 0:
+                return v.item()
+            if v.size == 1:
+                return v.reshape(()).item()
+            return np.nan  # secuencia no-escalar -> no ploteable
+        if isinstance(v, (list, tuple)):
+            return v[0] if len(v) == 1 else np.nan
+        return v
 
-    for col in df_trayectorias_copy.columns:
-        fig, ax = plt.subplots()
-        ax.plot(tiempos, df_trayectorias_copy[col], marker='o')
-        ax.set_ylabel(col)
-        ax.set_xlabel("Semanas")
-        ax.grid(True)
-        nombre_figura = f"{col}.png"
-        fig.savefig(os.path.join(fig_fecha_hora, nombre_figura))
-        plt.close(fig)
+    # Coaccionar celdas potencialmente problemáticas y quedarnos con numéricas
+    df_clean = df_trayectorias.copy()
+    for col in df_clean.columns:
+        df_clean[col] = df_clean[col].map(to_scalar)
+
+    # Solo columnas numéricas
+    df_num = df_clean.select_dtypes(include=[np.number]).copy()
+
+    if "tiempo" not in df_num.columns:
+        print("Columna 'tiempo' no está disponible como numérica; no se pueden graficar trayectorias.")
+        return
+
+    tiempos = df_num.pop("tiempo")
+
+    # Graficar solo columnas numéricas (omitimos las que queden vacías o NaN)
+    for col in df_num.columns:
+        serie = pd.to_numeric(df_num[col], errors="coerce")
+        if serie.isna().all():
+            print(f"Saltando columna no numérica o inválida: {col}")
+            continue
+        try:
+            fig, ax = plt.subplots()
+            ax.plot(tiempos, serie, marker='o')
+            ax.set_ylabel(col)
+            ax.set_xlabel("Semanas")
+            ax.grid(True)
+            nombre_figura = f"{col}.png"
+            fig.savefig(os.path.join(fig_fecha_hora, nombre_figura))
+            plt.close(fig)
+        except Exception as e:
+            print(f"No se pudo graficar columna {col}: {e}")
+
+def graficar_resumen_evaluacion(df_eval):
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    
+    # Acciones
+    ax1.plot(df_eval["tiempo"], df_eval["action"], marker='o', linestyle='-', color='tab:blue')
+    ax1.set_xlabel("Paso (Semana)")
+    ax1.set_ylabel("Acción (Fracción a turbinar)")
+    ax1.set_title("Acciones durante la Evaluación")
+    ax1.grid(True)
+
+    # Recompensas
+    ax2.plot(df_eval["tiempo"], df_eval["reward"], marker='o', linestyle='-', color='tab:green')
+    ax2.set_xlabel("Paso (Semana)")
+    ax2.set_ylabel("Recompensa")
+    ax2.set_title("Recompensas durante la Evaluación")
+    ax2.grid(True)
+
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -634,67 +712,44 @@ if __name__ == "__main__":
     resultados_promedio = os.path.join(carpeta,"promedios")
     os.makedirs(resultados_promedio, exist_ok=True)
 
+    MODEL_PATH = "RecurrentPPO_hydro_thermal_claire_continuous"
     EVAL_CSV_PATH = os.path.join(resultados_promedio,"trayectorias.csv")
     EVAL_CSV_ENERGIAS_PATH = os.path.join(resultados_promedio,"energias.csv")
     EVAL_CSV_ESTADOS_PATH = os.path.join(resultados_promedio,"estados.csv")
     EVAL_CSV_RESULTADOS_AGENTE_PATH = os.path.join(resultados_promedio,"resultados_agente.csv")
     EVAL_CSV_COSTOS_PATH = os.path.join(resultados_promedio,"costos.csv")
 
-    train_env = make_train_env()
-
-    # Verificar si existe la tabla Q
-    if os.path.exists("Q_table.npy"):
-        try:
-            print(f"Cargando tabla Q desde Q_table.npy...")
-            Q = np.load("Q_table.npy")
-            print("Tabla Q cargada exitosamente.")
-        except Exception as e:
-            print(f"Error al cargar la tabla Q: {e}")
-            print("Entrenando Q-learning de nuevo...")
-            Q = entrenar(train_env)
-    else:
-        print("Archivo de tabla Q no encontrado, entrenando uno nuevo...")        
-        Q = entrenar(train_env)
-    
-    # --- Guardar tabla Q ---
-    # ruta_q = os.path.join(carpeta, "Q_table.npy")
-    ruta_q = "Q_table.npy"
-    np.save(ruta_q, Q)
+    # Cargar o entrenar el modelo
+    model = cargar_o_entrenar_modelo(MODEL_PATH)
 
     # Evaluar el modelo
     print("Iniciando evaluación del modelo...")
-    eval_env = make_eval_env()
-    inner_env = eval_env.unwrapped
-    
-    df_eval, df_all = evaluar_modelo(Q, eval_env, inner_env.MODO, n_eval_episodes=114)
+   
+    eval_env_bef_dummy = make_eval_env()
+    eval_env = DummyVecEnv([lambda: eval_env_bef_dummy])
+    try:
+        eval_env = VecNormalize.load("vecnorm.pkl", eval_env)
+        eval_env.training = False
+        eval_env.norm_reward = False
+        print("VecNormalize cargado para evaluación.")
+    except Exception as e:
+        print(f"No se pudo cargar VecNormalize: {e}")
 
+    inner_env = eval_env_bef_dummy.unwrapped
+    df_eval, df_all = evaluar_modelo(model, eval_env, inner_env.MODO, n_eval_episodes=114)
     df_eval["reward_usd"] = df_eval["reward"] * 1e6
-    guardar_trayectorias(fecha_hora,df_eval)
-
-    # # Graficar mapa de calor de la tabla Q obtenida después del entrenamiento
-    # plt.figure(figsize=(8, 10))
-    # plt.imshow(Q, aspect='auto')
-    # plt.colorbar(label="Q(s,a)")
-    # plt.xlabel("Acciones (0..4)")
-    # plt.ylabel("Estados (idx 0..3119)")
-    # plt.title("Q-table completa (estados x acciones)")
-    # plt.tight_layout()
-    # plt.show()
-
-    # Obtener politica optima aplanada
-    politica = politica_optima(Q) # array de shape (3120,)
 
     num_pasos = 155  
 
     # Lista para guardar los DataFrames
-    dfs_escenarios = [df_all.iloc[i*num_pasos:(i+1)*num_pasos].reset_index(drop=True) for i in range(114)]
+    dfs_escenarios = [df_all.iloc[i*num_pasos:(i+1)*num_pasos].reset_index(drop=True) for i in range(100)]
 
     for i in range(len(dfs_escenarios)):
         df_escenario = dfs_escenarios[i]
         # Crear nombre con fecha y hora actual
         ruta_csv = os.path.join(carpeta, f"escenario_{i}.csv")
         df_escenario.to_csv(ruta_csv, index=False)
-    
+
     # Guardar y visualizar los resultados de la evaluación 
     df_eval.to_csv(EVAL_CSV_PATH, index=False)
     print(f"Resultados de la evaluación guardados en {EVAL_CSV_PATH}")
@@ -705,7 +760,7 @@ if __name__ == "__main__":
     print(f"Resultados de energia guardados en {EVAL_CSV_ENERGIAS_PATH}")
 
     # Guardar variables de estado en un mismo csv
-    df_estados = df_eval.loc[:, ["volumen_discreto", "hidrologia", "tiempo", "aportes", "vertimiento", "volumen_turbinado"]]
+    df_estados = df_eval.loc[:, ["volumen", "hidrologia", "tiempo", "aportes", "vertimiento", "volumen_turbinado"]]
     df_estados.to_csv(EVAL_CSV_ESTADOS_PATH, index=False)
     print(f"Resultados de variables de estado guardados en {EVAL_CSV_ESTADOS_PATH}")
 
@@ -721,6 +776,7 @@ if __name__ == "__main__":
 
     total_reward = df_eval["reward"].sum()
     print(f"Recompensa total en evaluación: {total_reward:.2f}")
+
     # Guardar gráficos de cada variable de la trayectoria
     guardar_trayectorias(fecha_hora,df_eval)
     print("Gráficos de trayectoria guardados en la carpeta 'figures'.")
@@ -730,3 +786,5 @@ if __name__ == "__main__":
     execution_time_minutes = execution_time_seconds / 60
     print(f"Tiempo de ejecución de main: {execution_time_minutes:.2f} minutos")
 
+    # Mostrar gráfico resumen de acciones y recompensas
+    graficar_resumen_evaluacion(df_eval)
