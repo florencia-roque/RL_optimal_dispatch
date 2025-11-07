@@ -1,0 +1,8 @@
+/figures
+/salidas
+/resultados
+/models
+/*.png
+/*.zip
+/Q_table.npy
+/vecnorm.pkl

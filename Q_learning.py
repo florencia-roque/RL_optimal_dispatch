@@ -63,6 +63,8 @@ class LiveRewardPlotter:
             plt.pause(0.001)
 
     def close(self, filename="figures/paper/training_est"):
+        if not os.path.exists(filename):
+            os.makedirs(filename)
         self.fig.savefig(filename, dpi=400, bbox_inches="tight")
         self.fig.savefig(f"{filename}.pdf", bbox_inches="tight")
         plt.ioff()
@@ -519,7 +521,7 @@ def entrenar(env):
 
     for episode in range(total_episodes):
 
-        if episode % 1000 == 0:
+        if episode % 100 == 0:
             print("Episodio: ", episode)
             
         inner_env = env.unwrapped
