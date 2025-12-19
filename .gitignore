@@ -20,6 +20,7 @@ data/processed/
 #  RESULTADOS DE EXPERIMENTOS
 # ============================
 results/*
+figures/*
 
 # ============================
 #  NOTEBOOKS

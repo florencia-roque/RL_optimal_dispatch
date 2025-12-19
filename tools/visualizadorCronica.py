@@ -97,7 +97,7 @@ plt.tight_layout(rect=[0, 0, 0.98, 1])  # deja 2% libre a la derecha
 fig.subplots_adjust(right=0.89, bottom=0.28)
 
 # Guardado
-os.makedirs("figures/paper/prueba", exist_ok=True)
-plt.savefig("figures/paper/prueba/dispatch_evaluation_det.png", dpi=400, bbox_inches="tight")
-plt.savefig("figures/paper/prueba/dispatch_evaluation_det.pdf", bbox_inches="tight")  # vectorial para el paper
+# os.makedirs("figures", exist_ok=True)
+# plt.savefig("figures/dispatch_evaluation_det.png", dpi=400, bbox_inches="tight")
+# plt.savefig("figures/dispatch_evaluation_det.pdf", bbox_inches="tight")  # vectorial para el paper
 plt.show()
