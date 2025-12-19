@@ -1,1 +1,0 @@
-# README que explica que se guarda en la carpeta results/

@@ -20,8 +20,6 @@ data/processed/
 #  RESULTADOS DE EXPERIMENTOS
 # ============================
 results/*
-# permitimos tener un readme
-!results/README.md   
 
 # ============================
 #  NOTEBOOKS
