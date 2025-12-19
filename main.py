@@ -1,0 +1,98 @@
+# main.py
+"""
+Punto de entrada centralizado para entrenar / evaluar algoritmos de RL
+en el problema hidro-térmico.
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+
+from src.rl_algorithms.ppo_agent import PPOAgent
+from src.rl_algorithms.a2c_agent import A2CAgent
+from src.rl_algorithms.q_learning_agent import QLearningAgent
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Entrenamiento / evaluación de RL para despacho hidro-térmico."
+    )
+
+    parser.add_argument("--alg", choices=["ppo", "a2c", "ql"], required=True)
+    parser.add_argument("--mode", choices=["train", "train_eval"], default="train")
+
+    # Entrenamiento (nota: para QL el default lógico es 3000)
+    parser.add_argument("--total-episodes", type=int, default=None)
+
+    # Evaluación (común)
+    parser.add_argument("--n-eval-episodes", type=int, default=114)
+
+    # Sliding window (PPO / A2C)
+    parser.add_argument("--window-weeks", type=int, default=156)
+    parser.add_argument("--stride-weeks", type=int, default=52)
+    parser.add_argument("--modo-eval", choices=["markov", "historico"], default="historico")
+
+    # Q-learning
+    parser.add_argument("--num-pasos", type=int, default=155)
+
+    # Paralelismo (entrenamiento PPO/A2C y evaluación sliding)
+    parser.add_argument("--n-envs", type=int, default=8)
+    parser.add_argument("--a2c-dummy", action="store_true")
+
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+
+    # Defaults dependientes del algoritmo
+    if args.total_episodes is None:
+        args.total_episodes = 3000 if args.alg == "ql" else 2000
+
+    # =========================
+    # Instanciar agente
+    # =========================
+    if args.alg == "ppo":
+        agent = PPOAgent(n_envs=args.n_envs)
+
+    elif args.alg == "a2c":
+        agent = A2CAgent(
+            n_envs=args.n_envs,
+            use_subproc=not args.a2c_dummy,
+        )
+
+    elif args.alg == "ql":
+        agent = QLearningAgent()
+
+    else:
+        sys.exit(f"Algoritmo no soportado: {args.alg}")
+
+    # =========================
+    # Entrenamiento
+    # =========================
+    if args.mode in ("train", "train_eval"):
+        agent.train(total_episodes=args.total_episodes)
+
+    # =========================
+    # Evaluación
+    # =========================
+    if args.mode == "train_eval":
+        if args.alg in ("ppo", "a2c"):
+            agent.evaluate(
+                n_eval_episodes=args.n_eval_episodes,
+                window_weeks=args.window_weeks,
+                stride_weeks=args.stride_weeks,
+                n_envs=args.n_envs,
+                modo_eval=args.modo_eval,
+            )
+
+        elif args.alg == "ql":
+            agent.evaluate(
+                n_eval_episodes=args.n_eval_episodes,
+                num_pasos=args.num_pasos,
+            )
+
+
+if __name__ == "__main__":
+    main()
