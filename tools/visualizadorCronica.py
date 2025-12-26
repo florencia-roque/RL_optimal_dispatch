@@ -1,16 +1,17 @@
+# tools/visualizadorCronica.py
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from tkinter import Tk, filedialog
 import unicodedata
-import os
 
-# === Función para normalizar nombres de columnas ===
+# Función para normalizar nombres de columnas
 def normalizar_columna(col):
     col = col.lower().replace(" ", "_")
     col = ''.join(c for c in unicodedata.normalize('NFD', col) if unicodedata.category(c) != 'Mn')
     return col
 
-# === Abrir file chooser ===
+# Abrir file chooser
 root = Tk()
 root.withdraw()
 file_path = filedialog.askopenfilename(
@@ -21,7 +22,7 @@ if not file_path:
     print("No se seleccionó ningún archivo.")
     exit()
 
-# === Leer CSV y normalizar columnas ===
+# Leer CSV y normalizar columnas
 if file_path.endswith('csv'):
     df = pd.read_csv(file_path, sep=",", engine="python")
     df.columns = [normalizar_columna(c) for c in df.columns]
@@ -32,7 +33,7 @@ elif file_path.endswith('xlsx'):
     df.columns = [normalizar_columna(c) for c in df.columns]
     print("Columnas normalizadas:", df.columns.tolist())
 
-# === Definir columnas ===
+# Definir columnas
 col_turbinada = "energia_hidro"
 col_renovable = "energia_renovable"
 col_termico_bajo = "energia_termico_bajo"
@@ -44,7 +45,7 @@ col_volumen = "volumen"
 # Eje X
 x = df.index
 
-# === Configuración global de estilo ===
+# Configuración global de estilo
 plt.rcParams.update({
     "font.size": 20,
     "axes.titlesize": 22,
@@ -54,10 +55,10 @@ plt.rcParams.update({
     "legend.fontsize": 20,
 })
 
-# === Crear figura alta resolución ===
+# Crear figura alta resolución
 fig, ax = plt.subplots(figsize=(14, 6), dpi=400)
 
-# Áreas apiladas: mantenemos colores anteriores
+# Áreas apiladas
 ax.stackplot(
     x,
     df[col_turbinada],     # Hydro (azul por defecto)
@@ -84,7 +85,7 @@ ax.set_title("Energies: Generation and Demand / Volume and Inflows", pad=8)
 ax.set_xlabel("Week", labelpad=8)
 ax.set_ylabel("Energy [MWh]", labelpad=8)
 
-# ↓ Etiqueta del eje derecho más chica y con espacio extra para que no se corte
+# Etiqueta del eje derecho más chica y con espacio extra para que no se corte
 ax2.set_ylabel("Volume [hm³]/Inflows [hm³/week]", fontsize=19, labelpad=8)
 
 # Leyenda combinada, un poco más abajo para no chocar con 'Week'

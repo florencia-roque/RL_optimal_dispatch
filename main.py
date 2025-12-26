@@ -5,22 +5,18 @@ en el problema hidro-térmico.
 """
 
 from __future__ import annotations
-
 import argparse
 import sys
-
-from src.rl_algorithms.ppo_agent import PPOAgent
-from src.rl_algorithms.a2c_agent import A2CAgent
-from src.rl_algorithms.q_learning_agent import QLearningAgent
-
+from src.rl_algorithms import PPOAgent, A2CAgent, QLearningAgent
+from src.utils.paths import get_latest_model
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Entrenamiento / evaluación de RL para despacho hidro-térmico."
+        description="Entrenamiento / Evaluación de RL para despacho hidro-térmico."
     )
 
     parser.add_argument("--alg", choices=["ppo", "a2c", "ql"], required=True)
-    parser.add_argument("--mode", choices=["train", "train_eval"], default="train")
+    parser.add_argument("--mode", choices=["train", "train_eval", "eval"], required=True)
 
     # Entrenamiento (nota: para QL el default lógico es 3000)
     parser.add_argument("--total-episodes", type=int, default=None)
@@ -42,14 +38,10 @@ def parse_args() -> argparse.Namespace:
 
     return parser.parse_args()
 
-
 def main() -> None:
     args = parse_args()
-
-    # Defaults dependientes del algoritmo
-    if args.total_episodes is None:
-        args.total_episodes = 3000 if args.alg == "ql" else 2000
-
+    print(f"Algoritmo: {args.alg}, Modo de ejecución: {args.mode}")
+    
     # =========================
     # Instanciar agente
     # =========================
@@ -92,7 +84,33 @@ def main() -> None:
                 n_eval_episodes=args.n_eval_episodes,
                 num_pasos=args.num_pasos,
             )
-
+    
+    elif args.mode == "eval":
+        model_path, vecnorm_path = get_latest_model(args.alg)
+        if args.alg == "ppo":
+            agent.load(model_path, vecnorm_path, modo_eval=args.modo_eval)
+            agent.evaluate(
+                n_eval_episodes=args.n_eval_episodes,
+                window_weeks=args.window_weeks,
+                stride_weeks=args.stride_weeks,
+                n_envs=args.n_envs,
+                modo_eval=args.modo_eval,
+            )
+        elif args.alg == "a2c":
+            agent.load(model_path, modo_eval=args.modo_eval)
+            agent.evaluate(
+                n_eval_episodes=args.n_eval_episodes,
+                window_weeks=args.window_weeks,
+                stride_weeks=args.stride_weeks,
+                n_envs=args.n_envs,
+                modo_eval=args.modo_eval,
+            )
+        else: # ql
+            agent.load(model_path,modo_eval=args.modo_eval)
+            agent.evaluate(
+                n_eval_episodes=args.n_eval_episodes,
+                num_pasos=args.num_pasos,
+            )
 
 if __name__ == "__main__":
     main()

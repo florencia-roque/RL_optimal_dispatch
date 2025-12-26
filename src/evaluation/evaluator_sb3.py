@@ -1,13 +1,9 @@
 # src/evaluation/evaluator_sb3.py
-# Evaluador genérico para modelos SB3 (incluye RecurrentPPO)
 
 from __future__ import annotations
-
 import numpy as np
 import pandas as pd
-
 from stable_baselines3.common.vec_env import DummyVecEnv
-
 
 def evaluar_sb3_parallel_sliding(
     model,
@@ -69,7 +65,6 @@ def evaluar_sb3_parallel_sliding(
         dones_np = np.asarray(dones).reshape(-1)
         acts = np.asarray(action)
 
-        # Log por env activo
         for i in range(n_envs):
             ep_id = int(active_episode_id[i])
             if ep_id < 0:
@@ -103,7 +98,6 @@ def evaluar_sb3_parallel_sliding(
         # -----------------------
         obs_next = obs2  # base
         if isinstance(obs_next, dict):
-            # lo vamos a modificar por env, así que lo convertimos a copiable
             obs_next = {k: v.copy() for k, v in obs_next.items()}
         else:
             obs_next = obs_next.copy()
@@ -112,7 +106,7 @@ def evaluar_sb3_parallel_sliding(
             if not done_now[i]:
                 continue
 
-            # cerró un episodio activo
+            # Cerró un episodio activo
             if active_episode_id[i] >= 0:
                 finished += 1
 
@@ -123,12 +117,12 @@ def evaluar_sb3_parallel_sliding(
                 next_episode_id += 1
                 steps_left[i] = window_weeks
             else:
-                # lo dejo inactivo
+                # Lo dejo inactivo
                 obs_i, _info = vec_env.env_method("reset", indices=i)[0]
                 active_episode_id[i] = -1
                 steps_left[i] = window_weeks
 
-            # IMPORTANTÍSIMO: reemplazar obs del env reseteado
+            # Reemplazar obs del env reseteado
             if isinstance(obs_next, dict):
                 for k in obs_next.keys():
                     obs_next[k][i] = obs_i[k]
@@ -145,7 +139,6 @@ def evaluar_sb3_parallel_sliding(
 
     vec_env.close()
     return df_avg, df_all
-
 
 def _stack_obs(obs_list):
     first = obs_list[0]

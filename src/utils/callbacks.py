@@ -1,17 +1,14 @@
 # src/utils/callbacks.py
 
 from __future__ import annotations
-
 from pathlib import Path
 from typing import Optional
-
 import numpy as np
 import matplotlib.pyplot as plt
 from stable_baselines3.common.callbacks import BaseCallback
 
-
 # ============================================================
-# Base común (no se usa directamente)
+# Base común
 # ============================================================
 
 class _LivePlotBase:
@@ -35,7 +32,7 @@ class _LivePlotBase:
         self.rewards_ep: list[float] = []
         self.moving_avg: list[float] = []
 
-        # interactivo (sirve si corrés en local)
+        # Interactivo
         plt.ion()
 
         # Estilo global
@@ -66,10 +63,9 @@ class _LivePlotBase:
         self.moving_avg.append(float(np.mean(self.rewards_ep[-w:])))
 
         if self.expected_total_episodes is not None:
-            # “cuando llegue al total esperado”
             if len(self.rewards_ep) == int(self.expected_total_episodes):
                 print(
-                    f"[INFO] Media móvil final (~convergencia): {self.moving_avg[-1]:.6f}"
+                    f"[INFO] Media móvil final (convergencia): {self.moving_avg[-1]:.6f}"
                 )
 
     def _refresh_plot(self) -> None:
@@ -91,11 +87,9 @@ class _LivePlotBase:
         plt.pause(0.001)
 
     def _save_and_close(self) -> None:
-        # asegurar carpeta
         out = Path(self.filename)
         out.parent.mkdir(parents=True, exist_ok=True)
 
-        # si te pasan "xxx" guardo "xxx.png" y "xxx.pdf"
         png_path = out
         if png_path.suffix == "":
             png_path = png_path.with_suffix(".png")
@@ -108,7 +102,6 @@ class _LivePlotBase:
         plt.ioff()
         # no bloquea en ejecuciones no-interactivas
         plt.show(block=False)
-
 
 # ============================================================
 # Callback para SB3 (PPO/A2C)
@@ -151,14 +144,13 @@ class LivePlotCallback(BaseCallback, _LivePlotBase):
     def _on_training_end(self) -> None:
         self._save_and_close()
 
-
 # ============================================================
 # Plotter para Q-learning (manual)
 # ============================================================
 
 class LiveRewardPlotter(_LivePlotBase):
     """
-    Para Q-learning (sin SB3): vos llamás update(reward_episodio) al final de cada episodio.
+    Para Q-learning
     """
 
     def __init__(

@@ -1,60 +1,18 @@
 # ============================
-#  IGNORAR ARCHIVOS PYTHON
+#  ARCHIVOS PYTHON
 # ============================
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# ============================
-#  DATOS
-# ============================
-# Datos procesados (generados por scripts)
-data/processed/
-
-# Datos crudos grandes (opcional)
-# data/raw/mop/*.xlsx
-# data/raw/claire/*.xlt
+*.py[cod]
+*$py.class
+.venv/
+venv/
 
 # ============================
 #  RESULTADOS DE EXPERIMENTOS
 # ============================
-results/*
-figures/*
+results/
 
 # ============================
-#  NOTEBOOKS
+#  VARIABLES DE ENTORNO
 # ============================
-.ipynb_checkpoints/
-*.nbconvert.ipynb
-
-# ============================
-#  LOGS
-# ============================
-*.log
-
-# ============================
-#  ENTORNOS VIRTUALES
-# ============================
-venv/
-.env/
-env/
-.venv/
-
-# ============================
-#  ARCHIVOS TEMPORALES
-# ============================
-*.tmp
-*.temp
-*.bak
-*.swp
-*.DS_Store
-
-# ============================
-#  OTROS
-# ============================
-# Archivos de VSCode
-.vscode/
-
-# Archivos de PyCharm
-.idea/
+.env

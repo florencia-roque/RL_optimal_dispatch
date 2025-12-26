@@ -1,22 +1,14 @@
-"""Wrappers del entorno.
-
-Regla práctica:
-- Todo lo que sea una transformación *del entorno Gym* (obs/action/reward) va acá.
-- Todo lo que sea utilitario tabular (encode/decode bins, etc.) queda en
-  src/environment/utils_tabular.py.
-"""
+# src/environment/wrappers.py
 
 from __future__ import annotations
-
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
-
 class OneHotFlattenObs(gym.ObservationWrapper):
     """Convierte una observación dict en un vector numérico.
 
-    Espera que el env subyacente exponga:
+    Espera que el env subyacente tenga las siguientes claves en la observación dict:
     - V_CLAIRE_MAX
     - N_HIDRO
     - T_MAX

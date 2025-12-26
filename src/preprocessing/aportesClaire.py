@@ -1,3 +1,5 @@
+# src/preprocessing/aportesClaire.py
+
 import pandas as pd
 import numpy as np
 
@@ -11,7 +13,7 @@ from src.utils.config import (
 def main():
     print("Procesando datos de aportes de Claire...")
 
-    # 1) Levantar datos históricos crudos
+    # Levantar datos históricos crudos
     df = pd.read_csv(
         CLAIRE_XLT,
         sep=r"\s+",
@@ -19,7 +21,7 @@ def main():
         encoding="cp1252"
     )
 
-    # 2) Calcular aporte total de Claire como suma de Bonete + Palmar + Salto
+    # Calcular aporte total de Claire como suma de Bonete + Palmar + Salto
     df["APORTE-CLAIRE"] = df[["APORTE-BONETE", "APORTE-PALMAR", "APORTE-SALTO"]].sum(axis=1)
 
     # Renombrar la columna Estacion → Semana
@@ -35,7 +37,7 @@ def main():
     pivot_df.to_csv(CLAIRE_APORTE_CSV, index=False)
     print(f"Aporte medio semanal guardado en: {CLAIRE_APORTE_CSV}")
 
-    # 3) Clasificación por quintiles
+    # Clasificación por quintiles
     n_clases = 5
     df_clasificado = pd.DataFrame(index=pivot_df.index, columns=pivot_df.columns)
 
@@ -53,7 +55,7 @@ def main():
     df_clasificado.to_csv(CLAIRE_HIDROLOGIA_CSV, index=False)
     print(f"Clasificación hidrológica guardada en: {CLAIRE_HIDROLOGIA_CSV}")
 
-    # 4) Preparar datos para matrices de transición semanales
+    # Preparar datos para matrices de transición semanales
     df_numeric = df_clasificado.replace({i: i for i in range(n_clases)}).dropna()
 
     # Rotar una fila para comparar semana 52 → semana 1 siguiente
@@ -66,7 +68,7 @@ def main():
         ignore_index=True
     )
 
-    # 5) Calcular matrices de transición semana a semana
+    # Calcular matrices de transición semana a semana
     def matriz_transicion(origen, destino, clases):
         matriz = np.zeros((clases, clases), dtype=int)
         for o, d in zip(origen, destino):
@@ -93,7 +95,6 @@ def main():
     print(f"Matrices de transición de Markov guardadas en: {CLAIRE_MATRICES_CSV}")
 
     print("Proceso finalizado con éxito.")
-
 
 if __name__ == "__main__":
     main()

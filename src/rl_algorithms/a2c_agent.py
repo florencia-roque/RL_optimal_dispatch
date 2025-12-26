@@ -1,12 +1,8 @@
 # src/rl_algorithms/a2c_agent.py
-# Clase para entrenar y evaluar A2C
-# Usa io.py, paths.py y evaluator_sb3.py
 
 from __future__ import annotations
-
 import time
 from pathlib import Path
-
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
 
@@ -25,10 +21,9 @@ from src.evaluation.eval_outputs import save_eval_outputs
 from src.evaluation.eval_config import build_sb3_eval_context
 from src.utils.callbacks import LivePlotCallback
 
-
 class A2CAgent:
     """
-    Clase para entrenar y evaluar A2C en el entorno Hydro-Thermal.
+    Clase para entrenar y evaluar A2C en el entorno Hydro-Thermal Continuo.
     """
 
     def __init__(self, modo="a2c", n_envs=8, use_subproc=True):
@@ -158,4 +153,3 @@ class A2CAgent:
 
         print(f"Recompensa total en evaluación A2C: {reward_total:.2f}")
         return df_avg, df_all
-

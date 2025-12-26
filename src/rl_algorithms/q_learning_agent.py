@@ -1,8 +1,6 @@
 # src/rl_algorithms/qlearning_agent.py
-# Clase para entrenar y evaluar Q-Learning tabular
 
 from __future__ import annotations
-
 import time
 from pathlib import Path
 import numpy as np
@@ -24,10 +22,14 @@ from src.evaluation.eval_config import build_eval_header_from_env
 from src.utils.callbacks import LiveRewardPlotter
 
 class QLearningAgent:
+    """
+    Clase para entrenar y evaluar Q-Learning tabular en el entorno Hydro-Thermal Tabular.
+    """
     def __init__(self, modo="ql"):
         self.alg = modo
         self.env = None
         self.Q = None
+        self.MODO = "historico"
 
     def train(self, total_episodes=3000):
         print("Comienzo de entrenamiento Q-learning...")
@@ -44,7 +46,6 @@ class QLearningAgent:
         self.alpha = 0.001 # learning rate
         self.gamma = 0.99 # discount
         self.epsilon = 0.01 # exploración
-
 
         deterministico = inner.DETERMINISTICO
         modo_ent = inner.MODO
@@ -92,12 +93,14 @@ class QLearningAgent:
         dt = (time.perf_counter() - t0) / 60
         print(f"Entrenamiento Q-learning completado en {dt:.2f} minutos")
 
-    def load(self, qtable_path: Path):
+    def load(self, qtable_path: Path, modo_eval="historico"):
         print(f"Cargando Q-table desde {qtable_path}...")
         self.Q = load_q_table(qtable_path)
         print("Q-table cargada.")
 
-        self.env = make_eval_env("ql")
+        self.MODO = modo_eval
+
+        self.env = make_eval_env("ql", modo=modo_eval)
         return self.env
 
     def evaluate(self, n_eval_episodes=114, num_pasos=None):
@@ -108,7 +111,7 @@ class QLearningAgent:
         if num_pasos is None:
             num_pasos = inner.T_MAX + 1
 
-        # --- Ajuste por histórico (tu lógica, pero antes del loop) ---
+        # Ajuste por histórico
         reset_con_start_week = (inner.DETERMINISTICO == 0 and inner.MODO == "historico")
         if reset_con_start_week:
             max_start = len(inner.datos_historicos) - (inner.T_MAX + 1)
@@ -117,7 +120,7 @@ class QLearningAgent:
                 print(f"[WARN] n_eval_episodes={n_eval_episodes} > max={max_eps}. Ajustando.")
                 n_eval_episodes = max_eps
 
-        hdr = build_eval_header_from_env(env=self.env)
+        hdr = build_eval_header_from_env(env=self.env, modo_eval=self.MODO)
 
         print("Iniciando evaluación Q-learning...")
 

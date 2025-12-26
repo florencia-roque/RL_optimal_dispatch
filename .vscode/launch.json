@@ -1,0 +1,48 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "RL: Ejecución Personalizada",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "args": [
+                "--alg", "${input:chooseAlg}",
+                "--mode", "${input:chooseMode}",
+                "--total-episodes", "${input:episodes}",
+                "--modo-eval", "${input:evalMode}"
+            ],
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "console": "integratedTerminal"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "chooseAlg",
+            "type": "pickString",
+            "description": "Algoritmo de RL:",
+            "options": ["ppo", "a2c", "ql"],
+            "default": "ppo"
+        },
+        {
+            "id": "chooseMode",
+            "type": "pickString",
+            "description": "Modo de ejecución:",
+            "options": ["train", "train_eval", "eval"],
+            "default": "train"
+        },
+        {
+            "id": "episodes",
+            "type": "promptString",
+            "description": "Número de episodios:",
+            "default": "2000"
+        },
+        {
+            "id": "evalMode",
+            "type": "pickString",
+            "description": "Modo de evaluación:",
+            "options": ["historico", "markov"],
+            "default": "historico"
+        }
+    ]
+}

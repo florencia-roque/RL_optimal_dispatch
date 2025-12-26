@@ -1,15 +1,11 @@
 # src/utils/paths.py
 
 from __future__ import annotations
-
-from typing import Tuple, Optional
-
+from typing import Optional
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
-
 from src.utils.config import FIGURES, MODELS, EVALUATIONS
-
 
 def _normalize_alg(alg: str) -> str:
     a = alg.strip().lower()
@@ -32,18 +28,15 @@ def timestamp() -> str:
     """
     return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-def mode_tag(deterministico: int, modo: str | None) -> str:
+def mode_tag(deterministico: int, modo: str) -> str:
     """
-    Construye el tag de modo que venías usando:
+    Construye el tag de modo para nombres de archivos:
     - est_<modo>  si DETERMINISTICO == 0
     - det_<modo>  si DETERMINISTICO == 1
-    Si modo es None, devuelve solo 'est' o 'det'.
     """
     pref = "est" if deterministico == 0 else "det"
-    if (modo is None):
-        return f"{pref}"
-    else:
-        return f"{pref}_{modo}"
+ 
+    return f"{pref}_{modo}"
 
 # =======================
 # Rutas de entrenamiento
@@ -55,7 +48,6 @@ _MODEL_BASENAME = {
     "ql": "Q_table",
 }
 
-
 def training_dirs(alg: str) -> Dict[str, Path]:
     """
     Devuelve las carpetas base de entrenamiento para un algoritmo.
@@ -66,7 +58,6 @@ def training_dirs(alg: str) -> Dict[str, Path]:
     fig_dir.mkdir(parents=True, exist_ok=True)
     model_dir.mkdir(parents=True, exist_ok=True)
     return {"fig_dir": fig_dir, "model_dir": model_dir}
-
 
 def training_paths(alg: str, fecha_hora: str, mode_tag_str: str) -> Dict[str, Path]:
     """
@@ -88,7 +79,7 @@ def training_paths(alg: str, fecha_hora: str, mode_tag_str: str) -> Dict[str, Pa
     elif alg == "ppo":
         model_path = model_dir / f"{base}_{fecha_hora}_{mode_tag_str}"
         vecnorm_path = model_dir / f"vecnorm_{fecha_hora}_{mode_tag_str}.pkl"
-    else:  # a2c u otros
+    else:  # a2c
         model_path = model_dir / f"{base}_{fecha_hora}_{mode_tag_str}"
         vecnorm_path = None
 
@@ -99,7 +90,6 @@ def training_paths(alg: str, fecha_hora: str, mode_tag_str: str) -> Dict[str, Pa
     if vecnorm_path is not None:
         out["vecnorm_path"] = vecnorm_path
     return out
-
 
 # =======================
 # Rutas de evaluación
@@ -119,11 +109,9 @@ def evaluation_dirs(alg: str, fecha_hora: str, mode_tag_str: str) -> Dict[str, P
 
     return {"eval_dir": eval_dir, "promedios_dir": promedios_dir}
 
-
 def evaluation_csv_paths(promedios_dir: Path) -> Dict[str, Path]:
     """
     Devuelve los paths de los CSV estándar de evaluación.
-    Coinciden con los nombres que ya venías usando.
     """
     return {
         "trayectorias": promedios_dir / "trayectorias.csv",
@@ -157,7 +145,7 @@ def get_latest_model(alg: str) -> tuple[Path, Optional[Path]]:
         raise FileNotFoundError(f"No hay modelos SB3 guardados para {alg_n}")
 
     latest_zip = modelos_zip[-1]
-    model_path = latest_zip.with_suffix("")  # quita .zip
+    model_path = latest_zip.with_suffix("") # quita .zip
 
     vecnorm_path = None
     if alg_n == "ppo":

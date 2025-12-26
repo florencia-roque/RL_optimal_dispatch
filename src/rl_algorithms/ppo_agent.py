@@ -1,12 +1,8 @@
 # src/rl_algorithms/ppo_agent.py
 
 from __future__ import annotations
-
 import time
 from pathlib import Path
-
-import pandas as pd
-
 from sb3_contrib import RecurrentPPO
 from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
 from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor, VecNormalize
@@ -20,14 +16,16 @@ from src.utils.io import (
     load_sb3_model,
     save_run_artifacts
 )
-from src.environment.env_factory import make_train_env, make_eval_env
 from src.evaluation.evaluator_sb3 import evaluar_sb3_parallel_sliding
+from src.environment.env_factory import make_train_env, make_eval_env
 from src.evaluation.eval_outputs import save_eval_outputs
 from src.evaluation.eval_config import build_sb3_eval_context
 from src.utils.callbacks import LivePlotCallback
 
-
 class PPOAgent:
+    """
+    Clase para entrenar y evaluar PPO en el entorno Hydro-Thermal Continuo.
+    """
     def __init__(self, modo="ppo", n_envs=8):
         self.alg = modo
         self.n_envs = n_envs

@@ -1,11 +1,9 @@
 # src/evaluation/eval_outputs.py
+
 from __future__ import annotations
-
 import pandas as pd
-
 from src.utils.paths import evaluation_dirs, evaluation_csv_paths
 from src.utils.io import save_dataframe, save_scenarios
-
 
 def save_eval_outputs(
     df_avg: pd.DataFrame,
@@ -18,7 +16,7 @@ def save_eval_outputs(
     n_eval_episodes: int | None = None,
 ):
     """
-    Guarda TODOS los outputs estándar de evaluación:
+    Guarda TODOS los outputs de evaluación:
     - trayectorias (df_avg)
     - energías, estados, resultados_agente, costos
     - escenarios individuales (df_all agrupado por episode_id)
@@ -27,7 +25,7 @@ def save_eval_outputs(
       - SB3 continuo: ["volumen", ...]
       - QL tabular:  ["volumen_discreto", ...]
     """
-
+    
     # Directorios / paths
     dirs = evaluation_dirs(alg, fecha, mode_tag_str)
     eval_dir = dirs["eval_dir"]

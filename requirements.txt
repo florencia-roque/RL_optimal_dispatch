@@ -1,8 +1,17 @@
+# Core RL
 gymnasium>=0.29.1
-numpy>=1.26.0
-pandas>=2.1.0
-matplotlib>=3.8.0
 stable-baselines3>=2.3.2
 sb3-contrib>=2.3.0
-protobuf<=3.20.3
+
+# Datos y Cálculo
+numpy>=1.26.0
+pandas>=2.1.0
+scipy>=1.11.0
 openpyxl>=3.1.2
+
+# Visualización
+matplotlib>=3.8.0
+
+# Compatibilidad y utilidades
+protobuf<=3.20.3
+tqdm>=4.66.0

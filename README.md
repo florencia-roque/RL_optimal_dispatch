@@ -6,42 +6,71 @@ Este repositorio contiene el código, datos y resultados correspondientes al pro
 
 ## Estructura del repositorio
 
-- **datos/**  
-  Contiene todos los datos de entrada utilizados por los scripts (series históricas, matrices de transición hidrológica y energías determinísticas).
+### TODO: ESCRIBIR ESTO, EXPLICANDO QUÉ ES CADA CARPETA Y ARCHIVO
 
-- **figures/**  
-  Carpeta donde se generan automáticamente las figuras producidas al correr los scripts principales.  
-  *Nota:* el script `visualizadorCronica.py` no guarda resultados en esta carpeta, ya que es una herramienta adicional de visualización.
+## Configuración y Ejecución
 
-- **resultados/**  
-  Almacena los resultados obtenidos para los tres algoritmos probados:  
-  - Actor-Critic  
-  - PPO (Proximal Policy Optimization)  
-  - Q-Learning  
-  Cada uno evaluado bajo escenarios de aportes **estocásticos** y **determinísticos**.
+1. **Clonar el repositorio:**
+  ```bash
+   git clone https://github.com/florencia-roque/RL_optimal_dispatch.git
 
-- **salidas/**  
-  Contiene archivos CSV con las distintas salidas de parámetros del problema generados en cada corrida.  
-  *Nota:* el script `visualizadorCronica.py` **no** guarda salidas aquí.
+   cd RL_optimal_dispatch
+  ```
 
-- **A2C.py**  
-  Script principal para definir, entrenar y evaluar el algoritmo **Actor-Critic**.
+2. **Configuración del Entorno (opcional pero recomendado)**
+Se recomienda el uso de un entorno virtual para evitar conflictos de dependencias:
 
-- **PPO.py**  
-  Script principal para definir, entrenar y evaluar el algoritmo **PPO**.
+*Windows:*
+  ```bash
+  python -m venv .venv
+  .\.venv\Scripts\activate
+  ```
+*Linux/Mac:*
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  ```
 
-- **Q_learning.py**  
-  Script principal para definir, entrenar y evaluar el algoritmo **Q-Learning**.
+3. **Instalar dependencias:**
+  ```bash
+  pip install -r requirements.txt
+   ```    
 
-- **visualizadorCronica.py**  
-  Herramienta adicional que permite seleccionar uno de los CSV generados en `salidas/` y visualizar gráficamente (en forma apilada) las series de energía generada, demanda, volumen del embalse y aportes, todo en función de las semanas.
+4. **Dos maneras para ejecutar**
 
----
+* Ejecutar con VS Code (recomendado):
+  * Abre el proyecto en VS Code.
+  * Presiona F5 para debug o Ctrl+F5 para Run sin debug.
+  * Selecciona el algoritmo y los parámetros en el menú que aparece en la parte superior.
 
-## Observaciones importantes
+* Ejecutar desde Terminal: 
 
-- Los scripts de **A2C** (`A2C.py`) y **PPO** (`PPO.py`) guardan en la **raíz del repositorio** el modelo entrenado cada vez que se ejecuta un entrenamiento.  
-- Si se desea reentrenar alguno de estos algoritmos desde cero, es necesario **eliminar previamente el modelo guardado en la raíz**, para evitar que el script cargue automáticamente la versión anterior.
+ Si no usas VS Code puedes ejecutar con el siguiente comando desde la raíz del proyecto.
+
+ ```bash
+python -m main --alg ppo --mode train
+```   
+
+Convenciones actuales del proyecto
+---------------------------------
+- Entrenamiento: siempre MODO='markov'.
+- Evaluación:
+    * si el env es determinístico (DETERMINISTICO==1): se evalúa en la misma tira
+      (no corresponde pedir modo por consola).
+    * si el env es estocástico (DETERMINISTICO==0): se puede evaluar en 'markov'
+      o 'historico'.
+
+Wrappers del entorno.
+---------------------------------
+Regla práctica:
+- Todo lo que sea una transformación *del entorno Gym* (obs/action/reward) va en src/environment/wrappers.py.
+- Todo lo que sea utilitario tabular (encode/decode bins, etc.) va en
+  src/environment/utils_tabular.py.
+
+
+Tools extra.
+---------------------------------
+Actualmente en desuso esos archivos (26/12/2025). De momento se guardan para eventualmente reciclar código.
 
 ---
 
@@ -51,4 +80,5 @@ Este repositorio contiene el código, datos y resultados correspondientes al pro
 - Matías Rama  
 - Ignacio Salas 
 - Mónica Carle
+- Magdalena Irurtia
 - Rodrigo Porteiro

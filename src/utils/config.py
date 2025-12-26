@@ -1,5 +1,8 @@
 # src/utils/config.py
-# define carpetas base y rutas de datos
+
+"""
+Define carpetas base y rutas de datos usadas en el proyecto.
+"""
 from pathlib import Path
 
 # Raíz del repo
@@ -16,7 +19,7 @@ CLAIRE_APORTE_CSV = DATA_PROCESSED / "aporte_claire.csv"
 CLAIRE_HIDROLOGIA_CSV = DATA_PROCESSED / "hidrologia_claire.csv"
 CLAIRE_MATRICES_CSV = DATA_PROCESSED / "matrices_markov_claire.csv"
 
-# MOP determinísticos (renovables y demanda)
+# MOP determinísticos (energias renovables y demanda)
 MOP_DET_XLSX = DATA_RAW / "mop" / "energias_ernc_demanda.xlsx"   # biomasa/eólico/solar/demanda
 MOP_APORTES_DET_XLSX = DATA_RAW / "mop" / "aportes_deterministicos.xlsx"  # para entrenar con aportes deterministicos
 

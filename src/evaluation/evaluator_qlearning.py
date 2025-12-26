@@ -1,10 +1,9 @@
 # src/evaluation/evaluator_qlearning.py
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import Callable, Tuple, Dict, Any, List
 import numpy as np
 import pandas as pd
-
 
 def evaluar_qlearning_parallel_sliding(
     env_fn: Callable[[], Any],          # callable que crea un env NUEVO
@@ -107,7 +106,6 @@ def evaluar_qlearning_parallel_sliding(
                 e.close()
             except Exception:
                 pass
-
 
 def _reset_env_slot(
     envs: List[Any],

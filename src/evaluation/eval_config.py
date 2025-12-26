@@ -1,11 +1,10 @@
 # src/evaluation/eval_config.py
-from __future__ import annotations
 
+from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
 from src.utils.paths import timestamp, mode_tag
-
 
 # =========================
 # Config común (header)
@@ -18,14 +17,13 @@ class EvalHeader:
     deterministico: int
     modo_eval: str
 
-
-def build_eval_header_from_env(*, env, modo_eval: str | None = None) -> EvalHeader:
+def build_eval_header_from_env(*, env, modo_eval: str) -> EvalHeader:
     """
-    Para agentes que ya tienen env (ej: QL): arma fecha + mode_tag_str estándar.
+    Para agentes que tienen env: arma fecha + mode_tag_str.
     """
     inner = env.unwrapped
     deterministico = int(getattr(inner, "DETERMINISTICO", 0))
-    modo = str(modo_eval or getattr(inner, "MODO", "markov")).lower()
+    modo = str(modo_eval).lower()
 
     fecha = timestamp()
     mode_tag_str = mode_tag(deterministico, modo)
@@ -36,7 +34,6 @@ def build_eval_header_from_env(*, env, modo_eval: str | None = None) -> EvalHead
         deterministico=deterministico,
         modo_eval=modo,
     )
-
 
 # =========================
 # Config para SB3 paralelo
@@ -50,7 +47,6 @@ class EvalContext:
     modo_eval: str
     env_fns: list[Callable[[], object]]  # callables que construyen envs
 
-
 def build_sb3_eval_context(
     *,
     alg: str,
@@ -59,8 +55,8 @@ def build_sb3_eval_context(
 ) -> EvalContext:
     """
     Para PPO/A2C:
-    - arma env_fns (N envs)
-    - crea un env temporal para leer determinismo (y validar modo)
+    - arma env_fns (n envs)
+    - crea un env temporal para leer si es deterministico (y validar modo)
     - arma fecha + mode_tag_str
     """
     from src.environment.env_factory import make_eval_env
