@@ -69,12 +69,14 @@ def make_eval_env(alg: str, modo: str):
     """
     env = make_base_env(alg)
     inner = env.unwrapped
-    modo = str(modo).lower()
 
     deterministico = int(getattr(inner, "DETERMINISTICO", 0))
 
     # Caso determinístico: no hay aleatoriedad; no corresponde elegir modo.
     if deterministico == 1:
         return env
+    
+    if hasattr(inner, "MODO"):
+        inner.MODO = str(modo).lower()
     
     return env
