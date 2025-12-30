@@ -45,7 +45,7 @@ class HydroThermalEnvCont(gym.Env):
     # poner 0 si queremos usar aportes estocásticos
     DETERMINISTICO = 0
 
-    MODO = "historico" # "markov" o "historico"
+    MODO = "markov"
 
     def __init__(self):
 
