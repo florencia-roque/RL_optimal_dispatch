@@ -19,6 +19,10 @@ Este repositorio contiene el código, datos y resultados correspondientes al pro
 
 2. **Configuración del Entorno (opcional pero recomendado)**
 Se recomienda el uso de un entorno virtual para evitar conflictos de dependencias:
+Para que permita la creacion de entorno virtual antes ejecutar:
+  ```bash
+  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+  ```
 
 *Windows:*
   ```bash
@@ -31,7 +35,16 @@ Se recomienda el uso de un entorno virtual para evitar conflictos de dependencia
   source .venv/bin/activate
   ```
 
+ Luego, hay que seleccionar este entorno virtual para trabajar ahí. Para ello abrir un archivo .py (para que ver el botón que muestra la versión de Python instalada) abajo a la derecha, como se muestra en la siguiente foto:
+
+![alt text](image-1.png)
+
+Elegir la opción de .venv, ver foto a continuación:
+
+![alt text](image.png)
+
 3. **Instalar dependencias:**
+Las mismas se instalarán desde el archivo que las tiene detalladas usando el siguiente comando:
   ```bash
   pip install -r requirements.txt
    ```    
