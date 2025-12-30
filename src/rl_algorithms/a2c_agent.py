@@ -26,7 +26,7 @@ class A2CAgent:
     Clase para entrenar y evaluar A2C en el entorno Hydro-Thermal Continuo.
     """
 
-    def __init__(self, modo="a2c", n_envs=8, use_subproc=True):
+    def __init__(self, modo="a2c", n_envs=8, use_subproc=True, deterministico=0):
         """
         modo: string del algoritmo (siempre 'a2c')
         n_envs: número de entornos paralelos
@@ -37,6 +37,7 @@ class A2CAgent:
         self.use_subproc = use_subproc
         self.vec_env = None
         self.model = None
+        self.deterministico = deterministico
 
     # ============================================================
     # ENTRENAMIENTO
@@ -61,11 +62,10 @@ class A2CAgent:
         total_timesteps = total_episodes * (T_MAX + 1)
 
         env0 = self.vec_env.get_attr("unwrapped", 0)[0]
-        deterministico = env0.DETERMINISTICO
         modo_ent = env0.MODO
 
         fecha = timestamp()
-        mode_tag_str = mode_tag(deterministico, modo_ent)
+        mode_tag_str = mode_tag(self.deterministico, modo_ent)
 
         # Rutas de guardado
         paths = training_paths(self.alg, fecha, mode_tag_str)
@@ -108,7 +108,7 @@ class A2CAgent:
         print("Modelo cargado.")
 
         # Crear env dummy para evaluación
-        env_vec = DummyVecEnv([lambda: make_eval_env("a2c", modo=mode_eval)])
+        env_vec = DummyVecEnv([lambda: make_eval_env("a2c", modo=mode_eval, deterministico=self.deterministico)])
 
         self.vec_env = env_vec
         return env_vec

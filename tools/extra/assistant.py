@@ -127,6 +127,7 @@ def main():
         df_avg, df_all = agent.evaluate(
             n_eval_episodes=114,
             num_pasos=155,
+            mode_eval=modo_eval,
         )
 
     # Métricas

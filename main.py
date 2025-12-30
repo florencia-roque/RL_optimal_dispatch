@@ -18,6 +18,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--alg", choices=["ppo", "a2c", "ql"], required=True)
     parser.add_argument("--mode", choices=["train", "train_eval", "eval"], required=True)
 
+    parser.add_argument("--det", type=int, choices=[0, 1], default=0, help="1 para usar aportes determinísticos, 0 para estocásticos")
+
     # Entrenamiento (nota: para QL el default lógico es 3000)
     parser.add_argument("--total-episodes", type=int, default=None)
 
@@ -46,16 +48,17 @@ def main() -> None:
     # Instanciar agente
     # =========================
     if args.alg == "ppo":
-        agent = PPOAgent(n_envs=args.n_envs)
+        agent = PPOAgent(n_envs=args.n_envs, deterministico=args.det)
 
     elif args.alg == "a2c":
         agent = A2CAgent(
             n_envs=args.n_envs,
             use_subproc=not args.a2c_dummy,
+            deterministico=args.det,
         )
 
     elif args.alg == "ql":
-        agent = QLearningAgent()
+        agent = QLearningAgent(deterministico=args.det)
 
     else:
         sys.exit(f"Algoritmo no soportado: {args.alg}")
@@ -83,6 +86,7 @@ def main() -> None:
             agent.evaluate(
                 n_eval_episodes=args.n_eval_episodes,
                 num_pasos=args.num_pasos,
+                mode_eval=args.mode_eval,
             )
     
     elif args.mode == "eval":
@@ -110,6 +114,7 @@ def main() -> None:
             agent.evaluate(
                 n_eval_episodes=args.n_eval_episodes,
                 num_pasos=args.num_pasos,
+                mode_eval=args.mode_eval,
             )
 
 if __name__ == "__main__":

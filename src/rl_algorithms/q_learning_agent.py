@@ -25,17 +25,18 @@ class QLearningAgent:
     """
     Clase para entrenar y evaluar Q-Learning tabular en el entorno Hydro-Thermal Tabular.
     """
-    def __init__(self, modo="ql"):
+    def __init__(self, modo="ql", deterministico=0):
         self.alg = modo
         self.env = None
         self.Q = None
-        self.MODO = "historico"
+        # self.MODO = "markov"
+        self.deterministico = deterministico
 
     def train(self, total_episodes=3000):
         print("Comienzo de entrenamiento Q-learning...")
         t0 = time.perf_counter()
 
-        self.env = make_train_env("ql")
+        self.env = make_train_env("ql", deterministico=self.deterministico)
         inner = self.env.unwrapped
 
         # Inicializar Q en el agente
@@ -47,10 +48,9 @@ class QLearningAgent:
         self.gamma = 0.99 # discount
         self.epsilon = 0.01 # exploración
 
-        deterministico = inner.DETERMINISTICO
         modo_ent = inner.MODO
         fecha = timestamp()
-        mode_tag_str = mode_tag(deterministico, modo_ent)
+        mode_tag_str = mode_tag(self.deterministico, modo_ent)
 
         paths = training_paths(self.alg, fecha, mode_tag_str)
         qtable_path = paths["model_path"]
@@ -98,12 +98,10 @@ class QLearningAgent:
         self.Q = load_q_table(qtable_path)
         print("Q-table cargada.")
 
-        self.MODO = mode_eval
-
         self.env = make_eval_env("ql", modo=mode_eval)
         return self.env
 
-    def evaluate(self, n_eval_episodes=114, num_pasos=None):
+    def evaluate(self, n_eval_episodes=114, num_pasos=None, mode_eval="historico"):
         if self.env is None or self.Q is None:
             raise RuntimeError("Primero cargar o entrenar el agente Q-learning.")
 
@@ -112,7 +110,7 @@ class QLearningAgent:
             num_pasos = inner.T_MAX + 1
 
         # Ajuste por histórico
-        reset_con_start_week = (inner.DETERMINISTICO == 0 and inner.MODO == "historico")
+        reset_con_start_week = (self.deterministico == 0 and mode_eval == "historico")
         if reset_con_start_week:
             max_start = len(inner.datos_historicos) - (inner.T_MAX + 1)
             max_eps = max_start // 52
@@ -120,7 +118,7 @@ class QLearningAgent:
                 print(f"[WARN] n_eval_episodes={n_eval_episodes} > max={max_eps}. Ajustando.")
                 n_eval_episodes = max_eps
 
-        hdr = build_eval_header_from_env(env=self.env, mode_eval=self.MODO)
+        hdr = build_eval_header_from_env(env=self.env, mode_eval=mode_eval)
 
         print("Iniciando evaluación Q-learning...")
 

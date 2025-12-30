@@ -9,6 +9,7 @@
             "args": [
                 "--alg", "${input:chooseAlg}",
                 "--mode", "${input:chooseMode}",
+                "--det", "${input:chooseDet}",
                 "--total-episodes", "${input:episodes}",
                 "--mode-eval", "${input:evalMode}"
             ],
@@ -43,6 +44,13 @@
             "description": "Modo de evaluación:",
             "options": ["historico", "markov"],
             "default": "historico"
+        },
+        {
+            "id": "chooseDet",
+            "type": "pickString",
+            "description": "Usar aportes determinísticos (1) o estocásticos (0):",
+            "options": ["0", "1"],
+            "default": "0"
         }
     ]
 }

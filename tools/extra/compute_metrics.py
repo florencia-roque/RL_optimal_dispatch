@@ -101,6 +101,7 @@ def main():
         df_avg, df_all = agent.evaluate(
             n_eval_episodes=args.episodes,
             num_pasos=args.num_pasos,
+            mode_eval=args.modo_eval,
         )
 
     # ===============================

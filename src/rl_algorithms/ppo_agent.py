@@ -26,17 +26,18 @@ class PPOAgent:
     """
     Clase para entrenar y evaluar PPO en el entorno Hydro-Thermal Continuo.
     """
-    def __init__(self, modo="ppo", n_envs=8):
+    def __init__(self, modo="ppo", n_envs=8, deterministico=0):
         self.alg = modo
         self.n_envs = n_envs
         self.vec_env = None
         self.model = None
+        self.deterministico = deterministico
 
     def train(self, total_episodes=2000):
         print("Comienzo de entrenamiento PPO...")
         t0 = time.perf_counter()
 
-        self.vec_env = DummyVecEnv([lambda: make_train_env("ppo") for _ in range(self.n_envs)])
+        self.vec_env = DummyVecEnv([lambda: make_train_env("ppo", deterministico=self.deterministico) for _ in range(self.n_envs)])
         self.vec_env = VecMonitor(self.vec_env)
         self.vec_env = VecNormalize(self.vec_env, norm_obs=True, norm_reward=True, clip_obs=10.0)
 
@@ -44,11 +45,10 @@ class PPOAgent:
         total_timesteps = total_episodes * (T_MAX + 1)
 
         env0 = self.vec_env.envs[0].unwrapped
-        deterministico = env0.DETERMINISTICO
         modo_ent = env0.MODO
 
         fecha = timestamp()
-        mode_tag_str = mode_tag(deterministico, modo_ent)
+        mode_tag_str = mode_tag(self.deterministico, modo_ent)
 
         paths = training_paths(self.alg, fecha, mode_tag_str)
         fig_path = paths["fig_path"]

@@ -108,15 +108,6 @@ class HydroThermalEnvCont(gym.Env):
         
         if self.DETERMINISTICO == 0 and self.MODO not in {"markov", "historico"}:
             raise ValueError("modo debe ser 'markov' u 'historico'")
-        
-        # # Validación de rango para histórico
-        # if self.DETERMINISTICO == 0 and self.MODO == "historico":
-        #     max_start = len(self.datos_historicos) - (self.T_MAX + 1)
-        #     if not (0 <= self.indice_inicial_episodio <= max_start):
-        #         raise ValueError(
-        #             f"start_week={self.indice_inicial_episodio} fuera de rango. "
-        #             f"Debe estar en [0, {max_start}]"
-        #         )
 
         self.volumen = self.V0
         self.tiempo = 0

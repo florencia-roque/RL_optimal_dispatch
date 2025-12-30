@@ -43,15 +43,20 @@ def make_base_env(alg: str):
 # Entrenamiento / Evaluación
 # -----------------------------------------------------------------------------
 
-def make_train_env(alg: str):
+def make_train_env(alg: str, deterministico: int = 0):
     """Entorno para ENTRENAMIENTO"""
     env = make_base_env(alg)
     inner = env.unwrapped
-    if hasattr(inner, "MODO"):
+
+    if hasattr(inner, "DETERMINISTICO"):
+        inner.DETERMINISTICO = deterministico  
+
+    if hasattr(inner, "MODO") and deterministico == 0:
         inner.MODO = "markov"
+
     return env
 
-def make_eval_env(alg: str, modo: str):
+def make_eval_env(alg: str, modo: str, deterministico: int = 0):
     """Entorno para EVALUACIÓN.
 
     Parameters
@@ -70,13 +75,17 @@ def make_eval_env(alg: str, modo: str):
     env = make_base_env(alg)
     inner = env.unwrapped
 
-    deterministico = int(getattr(inner, "DETERMINISTICO", 0))
+    # deterministico = int(getattr(inner, "DETERMINISTICO", 0))
 
+    if hasattr(inner, "DETERMINISTICO"):
+        inner.DETERMINISTICO = deterministico  
+    
     # Caso determinístico: no hay aleatoriedad; no corresponde elegir modo.
     if deterministico == 1:
         return env
     
+    # Caso estocástico: se aplica el modo solicitado (markov o historico).
     if hasattr(inner, "MODO"):
         inner.MODO = str(modo).lower()
-    
+
     return env
