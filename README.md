@@ -58,10 +58,22 @@ Las mismas se instalarán desde el archivo que las tiene detalladas usando el si
 
 * Ejecutar desde Terminal: 
 
- Si no usas VS Code puedes ejecutar con el siguiente comando desde la raíz del proyecto.
+ Si no usas VS Code puedes ejecutar con los siguientes comandos desde la raíz del proyecto.
+
+*Entrenamiento:*  
 
  ```bash
-python -m main --alg ppo --mode train
+python -m main --alg ql --mode train --total-episodes 3000
+```   
+*Evaluación:*  
+
+ ```bash
+python -m main --alg ql --mode eval --mode-eval historico
+``` 
+
+*Entrenamiento y evaluación:*
+ ```bash
+python -m main --alg ql --mode train_eval --total-episodes 3000 --mode-eval historico
 ```   
 
 Convenciones actuales del proyecto

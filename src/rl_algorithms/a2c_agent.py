@@ -99,7 +99,7 @@ class A2CAgent:
     # CARGA
     # ============================================================
 
-    def load(self, model_path: Path, modo_eval="historico"):
+    def load(self, model_path: Path, mode_eval="historico"):
         """
         Carga un modelo A2C entrenado.
         """
@@ -108,7 +108,7 @@ class A2CAgent:
         print("Modelo cargado.")
 
         # Crear env dummy para evaluación
-        env_vec = DummyVecEnv([lambda: make_eval_env("a2c", modo=modo_eval)])
+        env_vec = DummyVecEnv([lambda: make_eval_env("a2c", modo=mode_eval)])
 
         self.vec_env = env_vec
         return env_vec
@@ -123,12 +123,12 @@ class A2CAgent:
         window_weeks=156,
         stride_weeks=52,
         n_envs=8,
-        modo_eval="historico",
+        mode_eval="historico",
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo A2C.")
 
-        ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, modo_eval=modo_eval)
+        ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval)
 
         print("Iniciando evaluación A2C...")
 

@@ -93,14 +93,14 @@ class QLearningAgent:
         dt = (time.perf_counter() - t0) / 60
         print(f"Entrenamiento Q-learning completado en {dt:.2f} minutos")
 
-    def load(self, qtable_path: Path, modo_eval="historico"):
+    def load(self, qtable_path: Path, mode_eval="historico"):
         print(f"Cargando Q-table desde {qtable_path}...")
         self.Q = load_q_table(qtable_path)
         print("Q-table cargada.")
 
-        self.MODO = modo_eval
+        self.MODO = mode_eval
 
-        self.env = make_eval_env("ql", modo=modo_eval)
+        self.env = make_eval_env("ql", modo=mode_eval)
         return self.env
 
     def evaluate(self, n_eval_episodes=114, num_pasos=None):
@@ -120,7 +120,7 @@ class QLearningAgent:
                 print(f"[WARN] n_eval_episodes={n_eval_episodes} > max={max_eps}. Ajustando.")
                 n_eval_episodes = max_eps
 
-        hdr = build_eval_header_from_env(env=self.env, modo_eval=self.MODO)
+        hdr = build_eval_header_from_env(env=self.env, mode_eval=self.MODO)
 
         print("Iniciando evaluación Q-learning...")
 

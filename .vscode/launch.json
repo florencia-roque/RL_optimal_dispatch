@@ -10,7 +10,7 @@
                 "--alg", "${input:chooseAlg}",
                 "--mode", "${input:chooseMode}",
                 "--total-episodes", "${input:episodes}",
-                "--modo-eval", "${input:evalMode}"
+                "--mode-eval", "${input:evalMode}"
             ],
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "console": "integratedTerminal"

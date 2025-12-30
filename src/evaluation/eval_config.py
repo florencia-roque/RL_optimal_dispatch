@@ -15,15 +15,15 @@ class EvalHeader:
     fecha: str
     mode_tag_str: str
     deterministico: int
-    modo_eval: str
+    mode_eval: str
 
-def build_eval_header_from_env(*, env, modo_eval: str) -> EvalHeader:
+def build_eval_header_from_env(*, env, mode_eval: str) -> EvalHeader:
     """
     Para agentes que tienen env: arma fecha + mode_tag_str.
     """
     inner = env.unwrapped
     deterministico = int(getattr(inner, "DETERMINISTICO", 0))
-    modo = str(modo_eval).lower()
+    modo = str(mode_eval).lower()
 
     fecha = timestamp()
     mode_tag_str = mode_tag(deterministico, modo)
@@ -32,7 +32,7 @@ def build_eval_header_from_env(*, env, modo_eval: str) -> EvalHeader:
         fecha=fecha,
         mode_tag_str=mode_tag_str,
         deterministico=deterministico,
-        modo_eval=modo,
+        mode_eval=modo,
     )
 
 # =========================
@@ -44,14 +44,14 @@ class EvalContext:
     fecha: str
     mode_tag_str: str
     deterministico: int
-    modo_eval: str
+    mode_eval: str
     env_fns: list[Callable[[], object]]  # callables que construyen envs
 
 def build_sb3_eval_context(
     *,
     alg: str,
     n_envs: int,
-    modo_eval: str = "historico",
+    mode_eval: str = "historico",
 ) -> EvalContext:
     """
     Para PPO/A2C:
@@ -61,7 +61,7 @@ def build_sb3_eval_context(
     """
     from src.environment.env_factory import make_eval_env
 
-    modo = str(modo_eval).lower()
+    modo = str(mode_eval).lower()
 
     env_fns = [lambda m=modo: make_eval_env(alg, modo=m) for _ in range(n_envs)]
 
@@ -77,6 +77,6 @@ def build_sb3_eval_context(
         fecha=fecha,
         mode_tag_str=mode_tag_str,
         deterministico=deterministico,
-        modo_eval=modo,
+        mode_eval=modo,
         env_fns=env_fns,
     )

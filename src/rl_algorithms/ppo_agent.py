@@ -81,12 +81,12 @@ class PPOAgent:
         dt = (time.perf_counter() - t0) / 60
         print(f"Entrenamiento completado en {dt:.2f} minutos")
 
-    def load(self, model_path: Path, vecnorm_path: Path | None = None, modo_eval="historico"):
+    def load(self, model_path: Path, vecnorm_path: Path | None = None, mode_eval="historico"):
         print(f"Cargando modelo PPO desde {model_path}...")
         self.model = load_sb3_model(RecurrentPPO, model_path)
         print("Modelo cargado.")
 
-        env_vec = DummyVecEnv([lambda: make_eval_env("ppo", modo=modo_eval)])
+        env_vec = DummyVecEnv([lambda: make_eval_env("ppo", modo=mode_eval)])
 
         if vecnorm_path is not None and vecnorm_path.exists():
             print(f"Cargando VecNormalize desde {vecnorm_path}...")
@@ -103,12 +103,12 @@ class PPOAgent:
         window_weeks=156,
         stride_weeks=52,
         n_envs=8,
-        modo_eval="historico",
+        mode_eval="historico",
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo PPO.")
 
-        ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, modo_eval=modo_eval)
+        ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval)
 
         print("Iniciando evaluación PPO...")
 

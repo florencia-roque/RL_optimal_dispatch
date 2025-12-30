@@ -27,7 +27,7 @@ def parse_args() -> argparse.Namespace:
     # Sliding window (PPO / A2C)
     parser.add_argument("--window-weeks", type=int, default=156)
     parser.add_argument("--stride-weeks", type=int, default=52)
-    parser.add_argument("--modo-eval", choices=["markov", "historico"], default="historico")
+    parser.add_argument("--mode-eval", choices=["markov", "historico"], default="historico")
 
     # Q-learning
     parser.add_argument("--num-pasos", type=int, default=155)
@@ -76,7 +76,7 @@ def main() -> None:
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
                 n_envs=args.n_envs,
-                modo_eval=args.modo_eval,
+                mode_eval=args.mode_eval,
             )
 
         elif args.alg == "ql":
@@ -88,25 +88,25 @@ def main() -> None:
     elif args.mode == "eval":
         model_path, vecnorm_path = get_latest_model(args.alg)
         if args.alg == "ppo":
-            agent.load(model_path, vecnorm_path, modo_eval=args.modo_eval)
+            agent.load(model_path, vecnorm_path, mode_eval=args.mode_eval)
             agent.evaluate(
                 n_eval_episodes=args.n_eval_episodes,
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
                 n_envs=args.n_envs,
-                modo_eval=args.modo_eval,
+                mode_eval=args.mode_eval,
             )
         elif args.alg == "a2c":
-            agent.load(model_path, modo_eval=args.modo_eval)
+            agent.load(model_path, mode_eval=args.mode_eval)
             agent.evaluate(
                 n_eval_episodes=args.n_eval_episodes,
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
                 n_envs=args.n_envs,
-                modo_eval=args.modo_eval,
+                mode_eval=args.mode_eval,
             )
         else: # ql
-            agent.load(model_path,modo_eval=args.modo_eval)
+            agent.load(model_path, mode_eval=args.mode_eval)
             agent.evaluate(
                 n_eval_episodes=args.n_eval_episodes,
                 num_pasos=args.num_pasos,
