@@ -98,7 +98,7 @@ class QLearningAgent:
         self.Q = load_q_table(qtable_path)
         print("Q-table cargada.")
 
-        self.env = make_eval_env("ql", modo=mode_eval)
+        self.env = make_eval_env("ql", modo=mode_eval, deterministico=self.deterministico)
         return self.env
 
     def evaluate(self, n_eval_episodes=114, num_pasos=None, mode_eval="historico"):
@@ -108,6 +108,9 @@ class QLearningAgent:
         inner = self.env.unwrapped
         if num_pasos is None:
             num_pasos = inner.T_MAX + 1
+
+        if self.deterministico == 0:
+            print("Evaluando con modo:", mode_eval)
 
         # Ajuste por histórico
         reset_con_start_week = (self.deterministico == 0 and mode_eval == "historico")
@@ -138,7 +141,6 @@ class QLearningAgent:
                 done = bool(terminated or truncated)
 
                 fila = dict(info)
-                fila["episode_id"] = ep
                 fila["action"] = action
                 fila["reward"] = float(reward)
                 resultados.append(fila)

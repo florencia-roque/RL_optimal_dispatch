@@ -131,6 +131,8 @@ class A2CAgent:
         ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval)
 
         print("Iniciando evaluación A2C...")
+        if self.deterministico == 0:
+            print("Evaluando con modo:", mode_eval)
 
         df_avg, df_all = evaluar_sb3_parallel_sliding(
             self.model,

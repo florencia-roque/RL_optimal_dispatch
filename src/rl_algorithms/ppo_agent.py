@@ -86,7 +86,7 @@ class PPOAgent:
         self.model = load_sb3_model(RecurrentPPO, model_path)
         print("Modelo cargado.")
 
-        env_vec = DummyVecEnv([lambda: make_eval_env("ppo", modo=mode_eval)])
+        env_vec = DummyVecEnv([lambda: make_eval_env("ppo", modo=mode_eval, deterministico=self.deterministico)])
 
         if vecnorm_path is not None and vecnorm_path.exists():
             print(f"Cargando VecNormalize desde {vecnorm_path}...")
@@ -111,6 +111,8 @@ class PPOAgent:
         ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval)
 
         print("Iniciando evaluación PPO...")
+        if self.deterministico == 0:
+            print("Evaluando con modo:", mode_eval)
 
         df_avg, df_all = evaluar_sb3_parallel_sliding(
             self.model,

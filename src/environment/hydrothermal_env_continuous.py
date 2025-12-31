@@ -99,13 +99,9 @@ class HydroThermalEnvCont(gym.Env):
         # IMPORTANTE: inicializa el RNG del entorno
         super().reset(seed=seed)
 
-        if options and "start_week" in options:
-            self.indice_inicial_episodio = int(options["start_week"])
-            # self.episodios_recorridos = self.indice_inicial_episodio // 52
-        else:
-            self.indice_inicial_episodio = self.episodios_recorridos * 52
-            self.episodios_recorridos += 1
-        
+        self.indice_inicial_episodio = self.episodios_recorridos * 52
+        self.episodios_recorridos += 1
+
         if self.DETERMINISTICO == 0 and self.MODO not in {"markov", "historico"}:
             raise ValueError("modo debe ser 'markov' u 'historico'")
 
