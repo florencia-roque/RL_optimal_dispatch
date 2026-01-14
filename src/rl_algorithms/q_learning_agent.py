@@ -116,7 +116,7 @@ class QLearningAgent:
         reset_con_start_week = (self.deterministico == 0 and mode_eval == "historico")
         if reset_con_start_week:
             max_start = len(inner.datos_historicos) - (inner.T_MAX + 1)
-            max_eps = max_start // 52
+            max_eps = (max_start // 52) + 1
             if n_eval_episodes > max_eps:
                 print(f"[WARN] n_eval_episodes={n_eval_episodes} > max={max_eps}. Ajustando.")
                 n_eval_episodes = max_eps
@@ -141,6 +141,7 @@ class QLearningAgent:
                 done = bool(terminated or truncated)
 
                 fila = dict(info)
+                fila["episode_id"] = ep
                 fila["action"] = action
                 fila["reward"] = float(reward)
                 resultados.append(fila)
