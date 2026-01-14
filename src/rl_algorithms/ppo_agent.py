@@ -26,18 +26,19 @@ class PPOAgent:
     """
     Clase para entrenar y evaluar PPO en el entorno Hydro-Thermal Continuo.
     """
-    def __init__(self, modo="ppo", n_envs=8, deterministico=0):
+    def __init__(self, modo="ppo", n_envs=8, deterministico=0, seed=None):
         self.alg = modo
         self.n_envs = n_envs
         self.vec_env = None
         self.model = None
         self.deterministico = deterministico
+        self.seed = seed
 
     def train(self, total_episodes=2000):
         print("Comienzo de entrenamiento PPO...")
         t0 = time.perf_counter()
 
-        self.vec_env = DummyVecEnv([lambda: make_train_env("ppo", deterministico=self.deterministico) for _ in range(self.n_envs)])
+        self.vec_env = DummyVecEnv([lambda: make_train_env("ppo", deterministico=self.deterministico, seed=self.seed + i) for i in range(self.n_envs)])
         self.vec_env = VecMonitor(self.vec_env)
         self.vec_env = VecNormalize(self.vec_env, norm_obs=True, norm_reward=True, clip_obs=10.0)
 
@@ -71,6 +72,7 @@ class PPOAgent:
             ent_coef=0.005,
             learning_rate=3e-4,
             device="auto",
+            seed=self.seed,
         )
 
         callback = LivePlotCallback(window=100, refresh_every=10, filename=str(fig_path))

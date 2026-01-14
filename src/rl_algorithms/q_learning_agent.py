@@ -25,18 +25,18 @@ class QLearningAgent:
     """
     Clase para entrenar y evaluar Q-Learning tabular en el entorno Hydro-Thermal Tabular.
     """
-    def __init__(self, modo="ql", deterministico=0):
+    def __init__(self, modo="ql", deterministico=0, seed=None):
         self.alg = modo
         self.env = None
         self.Q = None
-        # self.MODO = "markov"
         self.deterministico = deterministico
+        self.seed = seed
 
     def train(self, total_episodes=3000):
         print("Comienzo de entrenamiento Q-learning...")
         t0 = time.perf_counter()
 
-        self.env = make_train_env("ql", deterministico=self.deterministico)
+        self.env = make_train_env("ql", deterministico=self.deterministico, seed=self.seed)
         inner = self.env.unwrapped
 
         # Inicializar Q en el agente
@@ -101,7 +101,7 @@ class QLearningAgent:
         self.env = make_eval_env("ql", modo=mode_eval, deterministico=self.deterministico)
         return self.env
 
-    def evaluate(self, n_eval_episodes=114, num_pasos=None, mode_eval="historico"):
+    def evaluate(self, n_eval_episodes=116, num_pasos=None, mode_eval="historico"):
         if self.env is None or self.Q is None:
             raise RuntimeError("Primero cargar o entrenar el agente Q-learning.")
 

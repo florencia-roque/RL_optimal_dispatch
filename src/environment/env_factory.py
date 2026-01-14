@@ -43,7 +43,7 @@ def make_base_env(alg: str):
 # Entrenamiento / Evaluación
 # -----------------------------------------------------------------------------
 
-def make_train_env(alg: str, deterministico: int = 0):
+def make_train_env(alg: str, deterministico: int = 0, seed: int = None):
     """Entorno para ENTRENAMIENTO"""
     env = make_base_env(alg)
     inner = env.unwrapped

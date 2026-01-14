@@ -26,7 +26,7 @@ class A2CAgent:
     Clase para entrenar y evaluar A2C en el entorno Hydro-Thermal Continuo.
     """
 
-    def __init__(self, modo="a2c", n_envs=8, use_subproc=True, deterministico=0):
+    def __init__(self, modo="a2c", n_envs=8, use_subproc=True, deterministico=0, seed=None):
         """
         modo: string del algoritmo (siempre 'a2c')
         n_envs: número de entornos paralelos
@@ -38,6 +38,7 @@ class A2CAgent:
         self.vec_env = None
         self.model = None
         self.deterministico = deterministico
+        self.seed = seed
 
     # ============================================================
     # ENTRENAMIENTO
@@ -49,7 +50,7 @@ class A2CAgent:
 
         # Crear entornos paralelos
         # SubprocVecEnv/DummyVecEnv esperan una lista de *callables* que construyen envs
-        env_fns = [lambda: make_train_env("a2c") for _ in range(self.n_envs)]
+        env_fns = [lambda: make_train_env("a2c", deterministico=self.deterministico, seed=self.seed + i) for i in range(self.n_envs)]
         if self.use_subproc:
             vec_constructor = SubprocVecEnv(env_fns)
         else:
@@ -81,6 +82,7 @@ class A2CAgent:
             learning_rate=3e-4,
             gamma=0.999,
             device="auto",
+            seed=self.seed,
         )
 
         callback = LivePlotCallback(
