@@ -34,7 +34,7 @@ class PPOAgent:
         self.deterministico = deterministico
         self.seed = seed
 
-    def train(self, total_episodes=2000):
+    def train(self, total_episodes=2000, hparams=None):
         print("Comienzo de entrenamiento PPO...")
         t0 = time.perf_counter()
 
@@ -62,15 +62,18 @@ class PPOAgent:
             net_arch=dict(pi=[128], vf=[128]),
         )
 
+        learning_rate = hparams.get("learning_rate", 3e-4) if hparams else 3e-4
+        gamma = hparams.get("gamma", 0.99) if hparams else 0.99        
+
         self.model = RecurrentPPO(
             MlpLstmPolicy,
             self.vec_env,
             policy_kwargs=policy_kwargs,
             verbose=1,
             n_steps=104,
-            gamma=0.99,
+            gamma=gamma,
             ent_coef=0.005,
-            learning_rate=3e-4,
+            learning_rate=learning_rate,
             device="auto",
             seed=self.seed,
         )
