@@ -3,6 +3,7 @@
 from __future__ import annotations
 import time
 from pathlib import Path
+from tkinter import TRUE
 import numpy as np
 import pandas as pd
 
@@ -58,9 +59,15 @@ class QLearningAgent:
 
         plotter = LiveRewardPlotter(window=100, refresh_every=10, filename=str(fig_path))
 
+        comienzo_ultimos_100 = False
+        reward_ultimos_100_episodios = 0.0
+
         for episode in range(total_episodes):
             if episode % 100 == 0:
                 print(f"Episodio: {episode}")
+
+            if episode == total_episodes - 100:
+                comienzo_ultimos_100 = True
 
             obs, _info = self.env.reset()
             idx = int(obs)
@@ -85,9 +92,13 @@ class QLearningAgent:
                 reward_episodio += float(reward)
                 idx = next_idx
 
+            if comienzo_ultimos_100:
+                reward_ultimos_100_episodios += float(reward_episodio)
+
             plotter.update(reward_episodio)
 
         plotter.close()
+        print("La recompensa acumulada promedio de los ultimos 100 episodios en training fue:", reward_ultimos_100_episodios/100)
         save_q_table(self.Q, qtable_path)
 
         dt = (time.perf_counter() - t0) / 60

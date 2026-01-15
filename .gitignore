@@ -11,6 +11,7 @@ venv/
 #  RESULTADOS DE EXPERIMENTOS
 # ============================
 results/
+corrida_mop/
 
 # ============================
 #  VARIABLES DE ENTORNO
