@@ -47,7 +47,12 @@ class HydroThermalEnvCont(gym.Env):
 
     MODO = "markov"
 
-    def __init__(self):
+    SEED = None
+
+    def __init__(self, seed=None):
+        super().__init__()
+
+        self.SEED = seed
 
         # Espacio de observación
         self.observation_space = spaces.Dict({
@@ -97,7 +102,8 @@ class HydroThermalEnvCont(gym.Env):
 
     def reset(self, seed=None, options=None):
         # IMPORTANTE: inicializa el RNG del entorno
-        super().reset(seed=seed)
+        actual_seed = seed if seed is not None else self.SEED
+        super().reset(seed=actual_seed)
 
         if options and "start_week" in options:
             self.indice_inicial_episodio = int(options["start_week"])

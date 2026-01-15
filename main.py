@@ -10,8 +10,17 @@ import sys
 from src.rl_algorithms import PPOAgent, A2CAgent, QLearningAgent
 from src.utils.paths import get_latest_model
 
+import random
+import numpy as np
+import torch
+
 # Fijar semilla para reproducibilidad
 seed = 42
+
+# Estas líneas "inyectan" la seed en los motores de las librerías
+random.seed(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
