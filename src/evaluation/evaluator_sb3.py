@@ -12,8 +12,13 @@ def evaluar_sb3_parallel_sliding(
     window_weeks: int = 156,
     stride_weeks: int = 52,
     deterministic: bool = True,
+    vec_env = None,
 ):
-    vec_env = DummyVecEnv(env_fns)
+    close_vec_env = False
+    if vec_env is None:
+        print("Creando entorno vectorizado para evaluación sin normalización...")
+        close_vec_env = True
+        vec_env = DummyVecEnv(env_fns)
     n_envs = vec_env.num_envs
 
     next_episode_id = 0
@@ -137,7 +142,9 @@ def evaluar_sb3_parallel_sliding(
     else:
         df_avg = df_all.copy()
 
-    vec_env.close()
+    if close_vec_env:
+        vec_env.close()
+        vec_env = None
     return df_avg, df_all
 
 def _stack_obs(obs_list):
