@@ -110,7 +110,7 @@ class A2CAgent:
         print("Modelo cargado.")
 
         # Crear env dummy para evaluación
-        env_vec = DummyVecEnv([lambda: make_eval_env("a2c", modo=mode_eval, deterministico=self.deterministico)])
+        env_vec = DummyVecEnv([lambda: make_eval_env("a2c", modo=mode_eval, deterministico=self.deterministico, seed=self.seed)])
 
         self.vec_env = env_vec
         return env_vec
@@ -130,7 +130,7 @@ class A2CAgent:
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo A2C.")
 
-        ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval)
+        ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=self.seed)
 
         print("Iniciando evaluación A2C...")
         if self.deterministico == 0:

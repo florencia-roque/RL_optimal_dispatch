@@ -98,7 +98,7 @@ class QLearningAgent:
         self.Q = load_q_table(qtable_path)
         print("Q-table cargada.")
 
-        self.env = make_eval_env("ql", modo=mode_eval, deterministico=self.deterministico)
+        self.env = make_eval_env("ql", modo=mode_eval, deterministico=self.deterministico, seed=self.seed)
         return self.env
 
     def evaluate(self, n_eval_episodes=116, num_pasos=None, mode_eval="historico"):
