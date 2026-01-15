@@ -25,18 +25,18 @@ class QLearningAgent:
     """
     Clase para entrenar y evaluar Q-Learning tabular en el entorno Hydro-Thermal Tabular.
     """
-    def __init__(self, modo="ql", deterministico=0):
+    def __init__(self, modo="ql", deterministico=0, seed=None):
         self.alg = modo
         self.env = None
         self.Q = None
-        # self.MODO = "markov"
         self.deterministico = deterministico
+        self.seed = seed
 
     def train(self, total_episodes=3000):
         print("Comienzo de entrenamiento Q-learning...")
         t0 = time.perf_counter()
 
-        self.env = make_train_env("ql", deterministico=self.deterministico)
+        self.env = make_train_env("ql", deterministico=self.deterministico, seed=self.seed)
         inner = self.env.unwrapped
 
         # Inicializar Q en el agente
@@ -98,10 +98,10 @@ class QLearningAgent:
         self.Q = load_q_table(qtable_path)
         print("Q-table cargada.")
 
-        self.env = make_eval_env("ql", modo=mode_eval, deterministico=self.deterministico)
+        self.env = make_eval_env("ql", modo=mode_eval, deterministico=self.deterministico, seed=self.seed)
         return self.env
 
-    def evaluate(self, n_eval_episodes=114, num_pasos=None, mode_eval="historico"):
+    def evaluate(self, n_eval_episodes=116, num_pasos=None, mode_eval="historico"):
         if self.env is None or self.Q is None:
             raise RuntimeError("Primero cargar o entrenar el agente Q-learning.")
 
@@ -116,7 +116,7 @@ class QLearningAgent:
         reset_con_start_week = (self.deterministico == 0 and mode_eval == "historico")
         if reset_con_start_week:
             max_start = len(inner.datos_historicos) - (inner.T_MAX + 1)
-            max_eps = max_start // 52
+            max_eps = (max_start // 52) + 1
             if n_eval_episodes > max_eps:
                 print(f"[WARN] n_eval_episodes={n_eval_episodes} > max={max_eps}. Ajustando.")
                 n_eval_episodes = max_eps
@@ -141,6 +141,7 @@ class QLearningAgent:
                 done = bool(terminated or truncated)
 
                 fila = dict(info)
+                fila["episode_id"] = ep
                 fila["action"] = action
                 fila["reward"] = float(reward)
                 resultados.append(fila)

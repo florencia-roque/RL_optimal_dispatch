@@ -10,6 +10,18 @@ import sys
 from src.rl_algorithms import PPOAgent, A2CAgent, QLearningAgent
 from src.utils.paths import get_latest_model
 
+import random
+import numpy as np
+import torch
+
+# Fijar semilla para reproducibilidad
+seed = 42
+
+# Estas líneas "inyectan" la seed en los motores de las librerías
+random.seed(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Entrenamiento / Evaluación de RL para despacho hidro-térmico."
@@ -48,17 +60,18 @@ def main() -> None:
     # Instanciar agente
     # =========================
     if args.alg == "ppo":
-        agent = PPOAgent(n_envs=args.n_envs, deterministico=args.det)
+        agent = PPOAgent(n_envs=args.n_envs, deterministico=args.det, seed=seed)
 
     elif args.alg == "a2c":
         agent = A2CAgent(
             n_envs=args.n_envs,
             use_subproc=not args.a2c_dummy,
             deterministico=args.det,
+            seed=seed,
         )
 
     elif args.alg == "ql":
-        agent = QLearningAgent(deterministico=args.det)
+        agent = QLearningAgent(deterministico=args.det, seed=seed)
 
     else:
         sys.exit(f"Algoritmo no soportado: {args.alg}")

@@ -18,30 +18,30 @@ Este repositorio contiene el código, datos y resultados correspondientes al pro
   ```
 
 2. **Configuración del Entorno (opcional pero recomendado)**
-Se recomienda el uso de un entorno virtual para evitar conflictos de dependencias:
-Para que permita la creacion de entorno virtual antes ejecutar:
+Se recomienda el uso de un entorno virtual para evitar conflictos de dependencias. Los siguientes comandos ejecutarlos en una consola dentro de VS Code.
+
+Para que permita la creacion de un entorno virtual, ejecutar primero:
   ```bash
   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
   ```
 
-*Windows:*
+A continuación ejecutar:
+
   ```bash
   python -m venv .venv
+  ```
+
+Aparecerá una ventana que pregunta si se desea seleccionar el entorno virtual creado para el espacio de trabajo actual.
+
+![select_env](docs/select_env.png)
+
+Clickeamos en Yes.
+
+Y por último hay que ejecutar:
+
+  ```bash
   .\.venv\Scripts\activate
   ```
-*Linux/Mac:*
-  ```bash
-  python3 -m venv .venv
-  source .venv/bin/activate
-  ```
-
- Luego, hay que seleccionar este entorno virtual para trabajar ahí. Para ello abrir un archivo .py (para que ver el botón que muestra la versión de Python instalada) abajo a la derecha, como se muestra en la siguiente foto:
-
-![alt text](docs/image-1.png)
-
-Elegir la opción de .venv, ver foto a continuación:
-
-![alt text](docs/image.png)
 
 3. **Instalar dependencias:**
 Las mismas se instalarán desde el archivo que las tiene detalladas usando el siguiente comando:
@@ -58,7 +58,7 @@ Las mismas se instalarán desde el archivo que las tiene detalladas usando el si
 
 * Ejecutar desde Terminal: 
 
- Si no usas VS Code puedes ejecutar con los siguientes comandos desde la raíz del proyecto.
+ Si no usa VS Code, puede ejecutar con los siguientes comandos desde la raíz del proyecto **(tener en cuenta que los comandos de configuración de entorno virtual fueron dados para VS Code, sin embargo puede utilizar la herramienta de su comodidad para ese fin)**.
 
 *Entrenamiento:*  
 

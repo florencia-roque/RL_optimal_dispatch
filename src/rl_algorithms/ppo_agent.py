@@ -26,18 +26,19 @@ class PPOAgent:
     """
     Clase para entrenar y evaluar PPO en el entorno Hydro-Thermal Continuo.
     """
-    def __init__(self, modo="ppo", n_envs=8, deterministico=0):
+    def __init__(self, modo="ppo", n_envs=8, deterministico=0, seed=None):
         self.alg = modo
         self.n_envs = n_envs
         self.vec_env = None
         self.model = None
         self.deterministico = deterministico
+        self.seed = seed
 
-    def train(self, total_episodes=2000):
+    def train(self, total_episodes=2000, hparams=None):
         print("Comienzo de entrenamiento PPO...")
         t0 = time.perf_counter()
 
-        self.vec_env = DummyVecEnv([lambda: make_train_env("ppo", deterministico=self.deterministico) for _ in range(self.n_envs)])
+        self.vec_env = DummyVecEnv([lambda: make_train_env("ppo", deterministico=self.deterministico, seed=self.seed + i) for i in range(self.n_envs)])
         self.vec_env = VecMonitor(self.vec_env)
         self.vec_env = VecNormalize(self.vec_env, norm_obs=True, norm_reward=True, clip_obs=10.0)
 
@@ -61,16 +62,20 @@ class PPOAgent:
             net_arch=dict(pi=[128], vf=[128]),
         )
 
+        learning_rate = hparams.get("learning_rate", 5e-5) if hparams else 5e-5
+        gamma = hparams.get("gamma", 0.99) if hparams else 0.99        
+
         self.model = RecurrentPPO(
             MlpLstmPolicy,
             self.vec_env,
             policy_kwargs=policy_kwargs,
             verbose=1,
             n_steps=104,
-            gamma=0.99,
+            gamma=gamma,
             ent_coef=0.005,
-            learning_rate=5e-5,
+            learning_rate=learning_rate,
             device="auto",
+            seed=self.seed,
         )
 
         # callback = LivePlotCallback(window=100, refresh_every=10, filename=str(fig_path))
@@ -89,7 +94,7 @@ class PPOAgent:
 
         # 1. Construimos el entorno base CORRECTO (Histórico) aquí
         # Esto asegura que el entorno subyacente tenga los datos completos (índices > 6000)
-        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval)
+        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=self.seed)
         
         base_env = DummyVecEnv(self.ctx.env_fns)
 

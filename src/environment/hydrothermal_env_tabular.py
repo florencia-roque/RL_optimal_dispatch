@@ -52,8 +52,12 @@ class HydroThermalEnvTab(gym.Env):
 
     MODO = "markov"
 
-    def __init__(self):
+    SEED = None
+
+    def __init__(self, seed=None):
         super().__init__()
+
+        self.SEED = seed
 
         self.N_BINS_VOL = 10
         self.VOL_EDGES = np.linspace(self.V_CLAIRE_MIN, self.V_CLAIRE_MAX, self.N_BINS_VOL + 1)
@@ -97,10 +101,15 @@ class HydroThermalEnvTab(gym.Env):
 
     def reset(self, seed=None, options=None):
         # IMPORTANTE: inicializa el RNG del entorno
-        super().reset(seed=seed)
-
-        self.indice_inicial_episodio = self.episodios_recorridos * 52
-        self.episodios_recorridos += 1
+        actual_seed = seed if seed is not None else self.SEED
+        super().reset(seed=actual_seed)
+        
+        if options and "start_week" in options:
+            self.indice_inicial_episodio = int(options["start_week"])
+            # self.episodios_recorridos = self.indice_inicial_episodio // 52
+        else:
+            self.indice_inicial_episodio = self.episodios_recorridos * 52
+            self.episodios_recorridos += 1
 
         if self.DETERMINISTICO == 0 and self.MODO not in {"markov", "historico"}:
             raise ValueError("modo debe ser 'markov' u 'historico'")
