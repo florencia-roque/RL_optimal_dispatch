@@ -92,14 +92,14 @@ def main() -> None:
     elif args.mode == "eval":
         model_path, vecnorm_path = get_latest_model(args.alg)
         if args.alg == "ppo":
-            agent.load(model_path, vecnorm_path, mode_eval=args.mode_eval)
+            agent.load(model_path, vecnorm_path, mode_eval=args.mode_eval, n_envs=args.n_envs)
             agent.evaluate(
                 n_eval_episodes=args.n_eval_episodes,
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
-                n_envs=args.n_envs,
                 mode_eval=args.mode_eval,
             )
+            agent.close_env()
         elif args.alg == "a2c":
             agent.load(model_path, mode_eval=args.mode_eval)
             agent.evaluate(

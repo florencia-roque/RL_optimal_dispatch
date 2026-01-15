@@ -69,46 +69,53 @@ class PPOAgent:
             n_steps=104,
             gamma=0.99,
             ent_coef=0.005,
-            learning_rate=3e-4,
+            learning_rate=5e-5,
             device="auto",
         )
 
-        callback = LivePlotCallback(window=100, refresh_every=10, filename=str(fig_path))
-        self.model.learn(total_timesteps=total_timesteps, callback=callback)
+        # callback = LivePlotCallback(window=100, refresh_every=10, filename=str(fig_path))
+        self.model.learn(total_timesteps=total_timesteps)
+        # self.model.learn(total_timesteps=total_timesteps, callback=callback)
 
         save_run_artifacts(self.model, model_path, self.vec_env, vecnorm_path)
 
         dt = (time.perf_counter() - t0) / 60
         print(f"Entrenamiento completado en {dt:.2f} minutos")
 
-    def load(self, model_path: Path, vecnorm_path: Path | None = None, mode_eval="historico"):
+    def load(self, model_path: Path, path_vec_normalize: Path | None = None, mode_eval="historico", n_envs=8):
         print(f"Cargando modelo PPO desde {model_path}...")
         self.model = load_sb3_model(RecurrentPPO, model_path)
         print("Modelo cargado.")
 
-        env_vec = DummyVecEnv([lambda: make_eval_env("ppo", modo=mode_eval, deterministico=self.deterministico)])
+        # 1. Construimos el entorno base CORRECTO (Histórico) aquí
+        # Esto asegura que el entorno subyacente tenga los datos completos (índices > 6000)
+        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval)
+        
+        base_env = DummyVecEnv(self.ctx.env_fns)
 
-        if vecnorm_path is not None and vecnorm_path.exists():
-            print(f"Cargando VecNormalize desde {vecnorm_path}...")
-            env_vec = VecNormalize.load(str(vecnorm_path), env_vec)
-            env_vec.training = False
-            env_vec.norm_reward = False
+        # 2. Aplicamos la normalización sobre ese entorno base
+        if path_vec_normalize:
+            print(f"Cargando estadísticas de normalización desde {path_vec_normalize}")
+            self.vec_env = VecNormalize.load(path_vec_normalize, base_env)
+            
+            # Configuraciones críticas para evaluación
+            self.vec_env.training = False 
+            self.vec_env.norm_reward = False
+        else:
+            print("AVISO: No se proporcionó VecNormalize. Usando entorno base sin normalizar.")
+            self.vec_env = base_env
 
-        self.vec_env = env_vec
-        return env_vec
+        print("Agente cargado y entorno de evaluación listo.")
 
     def evaluate(
         self,
         n_eval_episodes=114,
         window_weeks=156,
         stride_weeks=52,
-        n_envs=8,
         mode_eval="historico",
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo PPO.")
-
-        ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval)
 
         print("Iniciando evaluación PPO...")
         if self.deterministico == 0:
@@ -116,22 +123,29 @@ class PPOAgent:
 
         df_avg, df_all = evaluar_sb3_parallel_sliding(
             self.model,
-            env_fns=ctx.env_fns,
+            env_fns=self.ctx.env_fns,
             n_eval_episodes=n_eval_episodes,
             window_weeks=window_weeks,
             stride_weeks=stride_weeks,
             deterministic=True,
+            vec_env=self.vec_env
         )
 
         reward_total, _, _ = save_eval_outputs(
             df_avg,
             df_all,
             alg=self.alg,
-            fecha=ctx.fecha,
-            mode_tag_str=ctx.mode_tag_str,
+            fecha=self.ctx.fecha,
+            mode_tag_str=self.ctx.mode_tag_str,
             estados_cols=["volumen", "hidrologia", "tiempo", "aportes", "vertimiento", "volumen_turbinado"],
             n_eval_episodes=n_eval_episodes,
         )
 
         print(f"Recompensa total en evaluación PPO: {reward_total:.2f}")
         return df_avg, df_all
+    
+    def close_env(self):
+        if self.vec_env is not None:
+            self.vec_env.close()
+            print("Entorno de evaluación (VecNormalize) cerrado correctamente.")
+            self.vec_env = None
