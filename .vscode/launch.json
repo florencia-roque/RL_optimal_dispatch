@@ -25,8 +25,8 @@
             "args": [
                 "--alg", "${input:chooseAlg}",
                 "--mode", "tune",
-                "--n-trials", "50",
-                "--det", "0"
+                "--n-trials", "10",
+                "--det", "${input:chooseDet}"
             ],
             "justMyCode": true
         }

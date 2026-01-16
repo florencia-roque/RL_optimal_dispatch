@@ -20,6 +20,7 @@ from src.evaluation.evaluator_sb3 import evaluar_sb3_parallel_sliding
 from src.evaluation.eval_outputs import save_eval_outputs
 from src.evaluation.eval_config import build_sb3_eval_context
 from src.utils.callbacks import LivePlotCallback
+from stable_baselines3.common.callbacks import CallbackList # Importar para combinar callbacks
 
 class A2CAgent:
     """
@@ -44,7 +45,14 @@ class A2CAgent:
     # ENTRENAMIENTO
     # ============================================================
 
-    def train(self, total_episodes=2000):
+    def train(self, total_episodes=2000, hparams=None, extra_callback=None):
+        """
+        Entrena el agente.
+        total_episodes: Número total de episodios para entrenar. 
+        hparams: Diccionario de hiperparámetros sugeridos por Optuna.
+        extra_callback: Callback de Optuna para pruning.
+        """
+
         print("Comienzo de entrenamiento A2C...")
         t0 = time.perf_counter()
 
@@ -73,23 +81,36 @@ class A2CAgent:
         fig_path = paths["fig_path"]
         model_path = paths["model_path"]
 
+        learning_rate = hparams.get("learning_rate", 5e-5) if hparams else 5e-5
+        gamma = hparams.get("gamma", 0.99) if hparams else 0.99
+        n_steps = hparams.get("n_steps", 104) if hparams else 104 
+
         # Modelo A2C
         self.model = A2C(
             "MlpPolicy",
             self.vec_env,
             verbose=1,
-            n_steps=104,
-            learning_rate=3e-4,
-            gamma=0.999,
+            n_steps=n_steps,
+            learning_rate=learning_rate,
+            gamma=gamma,
             device="auto",
             seed=self.seed,
         )
 
-        callback = LivePlotCallback(
+        # Callback para graficar recompensas en vivo   
+        plot_callback = LivePlotCallback(
             window=100, refresh_every=10, filename=str(fig_path)
         )
 
-        self.model.learn(total_timesteps=total_timesteps, callback=callback)
+        # Combinar con el callback de Optuna si se proporciona
+        callbacks = [plot_callback]
+        if extra_callback is not None:
+            callbacks.append(extra_callback)
+        
+        callback_list = CallbackList(callbacks)
+
+        # Entrenar usando la lista de callbacks
+        self.model.learn(total_timesteps=total_timesteps, callback=callback_list)
 
         # Guardar modelo
         save_run_artifacts(self.model, model_path)

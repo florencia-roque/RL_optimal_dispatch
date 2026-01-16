@@ -3,7 +3,6 @@
 from __future__ import annotations
 import time
 from pathlib import Path
-from tkinter import TRUE
 import numpy as np
 import pandas as pd
 
@@ -22,6 +21,8 @@ from src.environment.utils_tabular import politica_optima
 from src.evaluation.eval_config import build_eval_header_from_env
 from src.utils.callbacks import LiveRewardPlotter
 
+import optuna
+
 class QLearningAgent:
     """
     Clase para entrenar y evaluar Q-Learning tabular en el entorno Hydro-Thermal Tabular.
@@ -33,21 +34,22 @@ class QLearningAgent:
         self.deterministico = deterministico
         self.seed = seed
 
-    def train(self, total_episodes=3000):
+    def train(self, total_episodes=3000, hparams=None, trial=None):
         print("Comienzo de entrenamiento Q-learning...")
         t0 = time.perf_counter()
 
         self.env = make_train_env("ql", deterministico=self.deterministico, seed=self.seed)
         inner = self.env.unwrapped
 
+        # Hiperparámetros: usar sugerencias de Optuna o valores por defecto
+        self.alpha = hparams.get("alpha", 0.001) if hparams else 0.001
+        self.gamma = hparams.get("gamma", 0.99) if hparams else 0.99
+        self.epsilon = hparams.get("epsilon", 0.01) if hparams else 0.01
+
         # Inicializar Q en el agente
         n_states = inner.observation_space.n
         n_actions = inner.action_space.n
         self.Q = np.zeros((n_states, n_actions), dtype=np.float32)
-
-        self.alpha = 0.001 # learning rate
-        self.gamma = 0.99 # discount
-        self.epsilon = 0.01 # exploración
 
         modo_ent = inner.MODO
         fecha = timestamp()
@@ -61,6 +63,8 @@ class QLearningAgent:
 
         comienzo_ultimos_100 = False
         reward_ultimos_100_episodios = 0.0
+
+        rewards_window = [] # Para calcular el promedio móvil
 
         for episode in range(total_episodes):
             if episode % 100 == 0:
@@ -92,6 +96,19 @@ class QLearningAgent:
                 reward_episodio += float(reward)
                 idx = next_idx
 
+            # --- LÓGICA DE OPTUNA (PRUNING) ---
+            if trial is not None:
+                rewards_window.append(reward_episodio)
+                if len(rewards_window) > 100: rewards_window.pop(0)
+                        
+                # Reportar cada 50 episodios para no saturar
+                if (episode + 1) % 50 == 0:
+                    avg_reward = np.mean(rewards_window)
+                    trial.report(avg_reward, episode)
+                            
+                    if trial.should_prune():
+                        raise optuna.TrialPruned()    
+            
             if comienzo_ultimos_100:
                 reward_ultimos_100_episodios += float(reward_episodio)
 

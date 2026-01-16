@@ -2,10 +2,39 @@
 
 import optuna
 import pandas as pd
-from pathlib import Path    
+from pathlib import Path 
+from stable_baselines3.common.callbacks import BaseCallback   
 from src.rl_algorithms import PPOAgent, A2CAgent, QLearningAgent
 from src.utils.paths import timestamp
-# from optuna.integration import OptunaPruningCallback
+
+class TrialPruningCallback(BaseCallback):
+    """
+    Callback de Optuna para podar (prune) trials no prometedores.
+    """
+
+    def __init__(self, trial: optuna.trial.Trial, monitor: str = "rollout/ep_rew_mean", verbose: int = 0):
+        super().__init__(verbose)
+        self.trial = trial
+        self.monitor = monitor
+
+    def _on_step(self) -> bool:
+        return True
+
+    def _on_rollout_end(self) -> None:
+        # PPO actualiza las métricas al final del rollout
+        # Accedemos al logger interno de SB3
+        if self.logger and self.monitor in self.logger.name_to_value:
+            value = self.logger.name_to_value[self.monitor]
+            
+            # Reportar a Optuna
+            self.trial.report(value, self.num_timesteps)
+            
+            # Verificar si se debe podar
+            if self.trial.should_prune():
+                message = f"Trial {self.trial.number} pruned at step {self.num_timesteps} with value {value}"
+                if self.verbose > 0:
+                    print(message)
+                raise optuna.TrialPruned(message)
 
 class HyperparameterTuner:
     def __init__(self, alg, deterministico=0, seed=42):
@@ -18,54 +47,56 @@ class HyperparameterTuner:
     def objective(self, trial):
         # Sugerir Hiperparámetros
         hparams = self._get_suggestions(trial)
-        
-        # # Configurar Agente
-        # agent = self._setup_agent()
 
-        # Crear el callback de poda para SB3
-        # 'eval/mean_reward' es la métrica que SB3 reporta internamente
-        # pruning_callback = OptunaPruningCallback(trial, monitor="eval/mean_reward")
+        # Instanciar y Entrenar
+        agent = self._create_agent()
 
-        if self.alg == "ppo":
-            agent = PPOAgent(deterministico=self.deterministico, seed=self.seed)
-
-        # Pasamos los parámetros y el callback de poda
         try:
-            agent.train(total_episodes=500, hparams=hparams, extra_callback=None)
-            
-            # Evaluación final para retornar el score a Optuna
-            df_avg, _ = agent.evaluate(n_eval_episodes=114)
+            if self.alg == "ql":
+                # Q-Learning manual: Pasamos el trial directo
+                agent.train(total_episodes=2000, hparams=hparams, trial=trial)
+            else:
+                # PPO / A2C (SB3): Usamos el callback manual
+                pruning_callback = TrialPruningCallback(trial, monitor="rollout/ep_rew_mean")
+                agent.train(total_episodes=500, hparams=hparams, extra_callback=pruning_callback)
+
+            # Evaluación final (común para todos)
+            df_avg, _ = agent.evaluate(n_eval_episodes=20)
             score = df_avg["reward"].mean()
             
-            self._log_trial(trial.number, hparams, score)
+            self._save_trial(trial.number, hparams, score)
             return score
 
-        except optuna.exceptions.TrialPruned:
-            # Si Optuna decide podar el trial, lanzamos la excepción para que lo registre
-            raise optuna.exceptions.TrialPruned()
-    
+        except optuna.TrialPruned:
+            raise
+
     def _get_suggestions(self, trial):
         if self.alg == "ppo":
             return {
                 "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True),
-                "gamma": trial.suggest_float("gamma", 0.9, 0.9999),
-                "n_steps": trial.suggest_int("n_steps", 64, 256),
-                "ent_coef": trial.suggest_float("ent_coef", 0.0, 0.01),
+                "gamma": trial.suggest_float("gamma", 0.9, 0.9999, log=True),
+                "n_steps": trial.suggest_int("n_steps", 64, 256, log=True),
+                "ent_coef": trial.suggest_float("ent_coef", 1e-8, 0.1, log=True),
             }
         elif self.alg == "a2c":
             return {
                 "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True),
-                "gamma": trial.suggest_float("gamma", 0.9, 0.9999),
-                "n_steps": trial.suggest_int("n_steps", 64, 256),
+                "gamma": trial.suggest_float("gamma", 0.9, 0.9999, log=True),
+                "n_steps": trial.suggest_int("n_steps", 64, 256, log=True),
             }
         elif self.alg == "ql":
             return {
-                "learning_rate": trial.suggest_float("learning_rate", 0.001, 1.0),
-                "discount_factor": trial.suggest_float("discount_factor", 0.8, 0.9999),
-                "exploration_rate": trial.suggest_float("exploration_rate", 0.01, 1.0),
+                "alpha": trial.suggest_float("alpha", 1e-4, 1e-1, log=True),
+                "gamma": trial.suggest_float("gamma", 0.8, 0.9999, log=True),
+                "epsilon": trial.suggest_float("exploration_rate", 1e-3, 0.1, log=True),
             }       
 
-    def _log_trial(self, number, params, score):
+    def _create_agent(self):
+        if self.alg == "ppo": return PPOAgent(deterministico=self.deterministico, seed=self.seed)
+        if self.alg == "a2c": return A2CAgent(deterministico=self.deterministico, seed=self.seed)
+        return QLearningAgent(deterministico=self.deterministico, seed=self.seed)
+
+    def _save_trial(self, number, params, score):
         data = {"trial": number, "score": score, **params}
         df = pd.DataFrame([data])
         df.to_csv(self.log_file, mode='a', header=not self.log_file.exists(), index=False)

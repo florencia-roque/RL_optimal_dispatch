@@ -30,8 +30,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--alg", choices=["ppo", "a2c", "ql"], required=True)
     parser.add_argument("--mode", choices=["train", "train_eval", "eval", "tune"], required=True)
-    parser.add_argument("--n-trials", type=int, default=50)
-
+    
     parser.add_argument("--det", type=int, choices=[0, 1], default=0, help="1 para usar aportes determinísticos, 0 para estocásticos")
 
     # Entrenamiento (nota: para QL el default lógico es 3000)
@@ -53,7 +52,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--a2c-dummy", action="store_true")
 
     # Argumento opcional para el número de pruebas de Optuna
-    # parser.add_argument("--n-trials", type=int, default=50, help="Número de pruebas para Optuna")
+    parser.add_argument("--n-trials", type=int, default=50, help="Número de pruebas para Optuna")
 
     return parser.parse_args()
 
@@ -67,8 +66,8 @@ def main() -> None:
     if args.mode == "tune":
         print(f"Iniciando Hyperparameter Tuning para {args.alg} con {args.n_trials} pruebas...")
         tuner = HyperparameterTuner(alg=args.alg, deterministico=args.det, seed=seed)
-        best_params = tuner.tune(n_trials=args.n_trials)
-        print(f"Tuning completado. Mejores parámetros encontrados: {best_params}")
+        tuner.tune(n_trials=args.n_trials)
+        print(f"Tuning completado.")
         return
     
     # =========================
