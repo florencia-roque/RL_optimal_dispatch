@@ -58,7 +58,7 @@ class A2CAgent:
 
         # Crear entornos paralelos
         # SubprocVecEnv/DummyVecEnv esperan una lista de *callables* que construyen envs
-        env_fns = [lambda: make_train_env("a2c", deterministico=self.deterministico, seed=self.seed + i) for i in range(self.n_envs)]
+        env_fns = [lambda: make_train_env("a2c", deterministico=self.deterministico, seed=self.seed) for _ in range(self.n_envs)]
         if self.use_subproc:
             vec_constructor = SubprocVecEnv(env_fns)
         else:
@@ -151,7 +151,13 @@ class A2CAgent:
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo A2C.")
 
-        ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=self.seed)
+        if not hasattr(self, "ctx") or self.ctx is None:
+            self.ctx = build_sb3_eval_context(
+                alg=self.alg, 
+                n_envs=n_envs, 
+                mode_eval=mode_eval, 
+                seed=self.seed
+            )
 
         print("Iniciando evaluación A2C...")
         if self.deterministico == 0:
@@ -159,7 +165,7 @@ class A2CAgent:
 
         df_avg, df_all = evaluar_sb3_parallel_sliding(
             self.model,
-            env_fns=ctx.env_fns,
+            env_fns=self.ctx.env_fns,
             n_eval_episodes=n_eval_episodes,
             window_weeks=window_weeks,
             stride_weeks=stride_weeks,
@@ -170,8 +176,8 @@ class A2CAgent:
             df_avg,
             df_all,
             alg=self.alg,
-            fecha=ctx.fecha,
-            mode_tag_str=ctx.mode_tag_str,
+            fecha=self.ctx.fecha,
+            mode_tag_str=self.ctx.mode_tag_str,
             estados_cols=["volumen", "hidrologia", "tiempo", "aportes", "vertimiento", "volumen_turbinado"],
             n_eval_episodes=n_eval_episodes,
         )

@@ -136,10 +136,19 @@ class PPOAgent:
         n_eval_episodes=114,
         window_weeks=156,
         stride_weeks=52,
+        n_envs = 8,
         mode_eval="historico",
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo PPO.")
+
+        if not hasattr(self, "ctx") or self.ctx is None:
+            self.ctx = build_sb3_eval_context(
+                alg=self.alg, 
+                n_envs=n_envs, 
+                mode_eval=mode_eval, 
+                seed=self.seed
+            )
 
         print("Iniciando evaluación PPO...")
         if self.deterministico == 0:

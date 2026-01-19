@@ -26,7 +26,8 @@
                 "--alg", "${input:chooseAlg}",
                 "--mode", "tune",
                 "--n-trials", "10",
-                "--det", "${input:chooseDet}"
+                "--det", "${input:chooseDet}",
+                "--a2c-dummy"
             ],
             "justMyCode": true
         }

@@ -134,6 +134,12 @@ class QLearningAgent:
             raise RuntimeError("Primero cargar o entrenar el agente Q-learning.")
 
         inner = self.env.unwrapped
+
+        if self.deterministico == 0 and hasattr(inner, "MODO"):
+            if inner.MODO != mode_eval:
+                print(f"[INFO] Cambiando modo del entorno de '{inner.MODO}' a '{mode_eval}' para evaluación.")
+                inner.MODO = mode_eval
+
         if num_pasos is None:
             num_pasos = inner.T_MAX + 1
 
