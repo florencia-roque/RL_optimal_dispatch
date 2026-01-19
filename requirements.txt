@@ -12,6 +12,7 @@ openpyxl>=3.1.2
 
 # Visualización
 matplotlib>=3.8.0
+tensorboard>=2.15.0
 
 # Compatibilidad y utilidades
 protobuf<=3.20.3

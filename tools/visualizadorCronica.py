@@ -56,7 +56,7 @@ plt.rcParams.update({
 })
 
 # Crear figura alta resolución
-fig, ax = plt.subplots(figsize=(14, 6), dpi=400)
+fig, ax = plt.subplots(figsize=(14, 6), dpi=100)
 
 # Áreas apiladas
 ax.stackplot(

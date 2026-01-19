@@ -15,12 +15,12 @@ import numpy as np
 import torch
 
 # Fijar semilla para reproducibilidad
-seed = 42
+seed = None
 
 # Estas líneas "inyectan" la seed en los motores de las librerías
-random.seed(seed)
-np.random.seed(seed)
-torch.manual_seed(seed)
+# random.seed(seed)
+# np.random.seed(seed)
+# torch.manual_seed(seed)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -87,11 +87,15 @@ def main() -> None:
     # =========================
     if args.mode == "train_eval":
         if args.alg in ("ppo", "a2c"):
+            model_path, vecnorm_path = get_latest_model(args.alg)
+            if args.alg == "ppo":
+                agent.load(model_path, vecnorm_path, mode_eval=args.mode_eval, n_envs=args.n_envs)
+            elif args.alg == "a2c":
+                agent.load(model_path, mode_eval=args.mode_eval)
             agent.evaluate(
                 n_eval_episodes=args.n_eval_episodes,
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
-                n_envs=args.n_envs,
                 mode_eval=args.mode_eval,
             )
 
