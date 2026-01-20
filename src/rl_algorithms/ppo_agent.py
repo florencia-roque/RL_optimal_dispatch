@@ -17,7 +17,7 @@ from src.utils.io import (
     save_run_artifacts
 )
 from src.evaluation.evaluator_sb3 import evaluar_sb3_parallel_sliding
-from src.environment.env_factory import make_train_env, make_eval_env
+from src.environment.env_factory import make_train_env
 from src.evaluation.eval_outputs import save_eval_outputs
 from src.evaluation.eval_config import build_sb3_eval_context
 from src.utils.callbacks import LivePlotCallback
@@ -111,13 +111,12 @@ class PPOAgent:
         self.model = load_sb3_model(RecurrentPPO, model_path)
         print("Modelo cargado.")
 
-        # 1. Construimos el entorno base CORRECTO (Histórico) aquí
-        # Esto asegura que el entorno subyacente tenga los datos completos (índices > 6000)
+        # Construimos el entorno base correcto
         self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=self.seed)
         
         base_env = DummyVecEnv(self.ctx.env_fns)
 
-        # 2. Aplicamos la normalización sobre ese entorno base
+        # Aplicamos la normalización sobre ese entorno base
         if path_vec_normalize:
             print(f"Cargando estadísticas de normalización desde {path_vec_normalize}")
             self.vec_env = VecNormalize.load(path_vec_normalize, base_env)
@@ -138,6 +137,7 @@ class PPOAgent:
         stride_weeks=52,
         n_envs = 8,
         mode_eval="historico",
+        eval_seed=None
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo PPO.")
@@ -147,7 +147,7 @@ class PPOAgent:
                 alg=self.alg, 
                 n_envs=n_envs, 
                 mode_eval=mode_eval, 
-                seed=self.seed
+                seed=eval_seed
             )
 
         print("Iniciando evaluación PPO...")

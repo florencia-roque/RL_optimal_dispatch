@@ -11,17 +11,11 @@ from src.rl_algorithms import PPOAgent, A2CAgent, QLearningAgent
 from src.utils.paths import get_latest_model
 from src.utils.hparam_tuning import HyperparameterTuner
 
-import random
 import numpy as np
-import torch
 
 # Fijar semilla para reproducibilidad
 seed = None
-
-# # Estas líneas "inyectan" la seed en los motores de las librerías
-# random.seed(seed)
-# np.random.seed(seed)
-# torch.manual_seed(seed)
+eval_seed = 42
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -107,6 +101,7 @@ def main() -> None:
                 stride_weeks=args.stride_weeks,
                 n_envs=args.n_envs,
                 mode_eval=args.mode_eval,
+                eval_seed=eval_seed
             )
 
         elif args.alg == "ql":
@@ -114,6 +109,7 @@ def main() -> None:
                 n_eval_episodes=args.n_eval_episodes,
                 num_pasos=args.num_pasos,
                 mode_eval=args.mode_eval,
+                eval_seed=eval_seed
             )
     
     elif args.mode == "eval":
@@ -124,7 +120,9 @@ def main() -> None:
                 n_eval_episodes=args.n_eval_episodes,
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
+                n_envs=args.n_envs,
                 mode_eval=args.mode_eval,
+                eval_seed=eval_seed
             )
             agent.close_env()
         elif args.alg == "a2c":
@@ -135,6 +133,7 @@ def main() -> None:
                 stride_weeks=args.stride_weeks,
                 n_envs=args.n_envs,
                 mode_eval=args.mode_eval,
+                eval_seed=eval_seed
             )
         else: # ql
             agent.load(model_path, mode_eval=args.mode_eval)
@@ -142,6 +141,7 @@ def main() -> None:
                 n_eval_episodes=args.n_eval_episodes,
                 num_pasos=args.num_pasos,
                 mode_eval=args.mode_eval,
+                eval_seed=eval_seed
             )
 
 if __name__ == "__main__":
