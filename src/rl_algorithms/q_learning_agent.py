@@ -21,6 +21,8 @@ from src.environment.utils_tabular import politica_optima
 from src.evaluation.eval_config import build_eval_header_from_env
 from src.utils.callbacks import LiveRewardPlotter
 
+import optuna
+
 class QLearningAgent:
     """
     Clase para entrenar y evaluar Q-Learning tabular en el entorno Hydro-Thermal Tabular.
@@ -32,21 +34,22 @@ class QLearningAgent:
         self.deterministico = deterministico
         self.seed = seed
 
-    def train(self, total_episodes=3000):
+    def train(self, total_episodes=3000, hparams=None, trial=None):
         print("Comienzo de entrenamiento Q-learning...")
         t0 = time.perf_counter()
 
         self.env = make_train_env("ql", deterministico=self.deterministico, seed=self.seed)
         inner = self.env.unwrapped
 
+        # Hiperparámetros: usar sugerencias de Optuna o valores por defecto
+        self.alpha = hparams.get("alpha", 0.001) if hparams else 0.001
+        self.gamma = hparams.get("gamma", 0.99) if hparams else 0.99
+        self.epsilon = hparams.get("epsilon", 0.01) if hparams else 0.01
+
         # Inicializar Q en el agente
         n_states = inner.observation_space.n
         n_actions = inner.action_space.n
         self.Q = np.zeros((n_states, n_actions), dtype=np.float32)
-
-        self.alpha = 0.001 # learning rate
-        self.gamma = 0.99 # discount
-        self.epsilon = 0.01 # exploración
 
         modo_ent = inner.MODO
         fecha = timestamp()
@@ -58,9 +61,17 @@ class QLearningAgent:
 
         plotter = LiveRewardPlotter(window=100, refresh_every=10, filename=str(fig_path))
 
+        comienzo_ultimos_100 = False
+        reward_ultimos_100_episodios = 0.0
+
+        rewards_window = [] # Para calcular el promedio móvil
+
         for episode in range(total_episodes):
             if episode % 100 == 0:
                 print(f"Episodio: {episode}")
+
+            if episode == total_episodes - 100:
+                comienzo_ultimos_100 = True
 
             obs, _info = self.env.reset()
             idx = int(obs)
@@ -85,9 +96,26 @@ class QLearningAgent:
                 reward_episodio += float(reward)
                 idx = next_idx
 
+            # --- LÓGICA DE OPTUNA (PRUNING) ---
+            if trial is not None:
+                rewards_window.append(reward_episodio)
+                if len(rewards_window) > 100: rewards_window.pop(0)
+                        
+                # Reportar cada 50 episodios para no saturar
+                if (episode + 1) % 50 == 0:
+                    avg_reward = np.mean(rewards_window)
+                    trial.report(avg_reward, episode)
+                            
+                    if trial.should_prune():
+                        raise optuna.TrialPruned()    
+            
+            if comienzo_ultimos_100:
+                reward_ultimos_100_episodios += float(reward_episodio)
+
             plotter.update(reward_episodio)
 
         plotter.close()
+        print("La recompensa acumulada promedio de los ultimos 100 episodios en training fue:", reward_ultimos_100_episodios/100)
         save_q_table(self.Q, qtable_path)
 
         dt = (time.perf_counter() - t0) / 60
@@ -101,11 +129,22 @@ class QLearningAgent:
         self.env = make_eval_env("ql", modo=mode_eval, deterministico=self.deterministico, seed=self.seed)
         return self.env
 
-    def evaluate(self, n_eval_episodes=116, num_pasos=None, mode_eval="historico"):
+    def evaluate(self, n_eval_episodes=116, num_pasos=None, mode_eval="historico", eval_seed=None):
         if self.env is None or self.Q is None:
             raise RuntimeError("Primero cargar o entrenar el agente Q-learning.")
 
         inner = self.env.unwrapped
+
+        current_seed = eval_seed if eval_seed is not None else self.seed
+
+        if current_seed is not None:
+             inner.reset(seed=current_seed)
+
+        if self.deterministico == 0 and hasattr(inner, "MODO"):
+            if inner.MODO != mode_eval:
+                print(f"[INFO] Cambiando modo del entorno de '{inner.MODO}' a '{mode_eval}' para evaluación.")
+                inner.MODO = mode_eval
+
         if num_pasos is None:
             num_pasos = inner.T_MAX + 1
 

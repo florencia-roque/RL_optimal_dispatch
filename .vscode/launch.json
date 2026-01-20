@@ -15,6 +15,21 @@
             ],
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "console": "integratedTerminal"
+        },
+        {
+            "name": "RL Tuning (Optuna)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--alg", "${input:chooseAlg}",
+                "--mode", "tune",
+                "--n-trials", "10",
+                "--det", "${input:chooseDet}",
+                "--a2c-dummy"
+            ],
+            "justMyCode": true
         }
     ],
     "inputs": [
@@ -29,7 +44,7 @@
             "id": "chooseMode",
             "type": "pickString",
             "description": "Modo de ejecución:",
-            "options": ["train", "train_eval", "eval"],
+            "options": ["train", "train_eval", "eval", "tune"],
             "default": "train"
         },
         {

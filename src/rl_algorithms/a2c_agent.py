@@ -15,11 +15,12 @@ from src.utils.io import (
     load_sb3_model,
     save_run_artifacts
 )
-from src.environment.env_factory import make_train_env, make_eval_env
+from src.environment.env_factory import make_train_env
 from src.evaluation.evaluator_sb3 import evaluar_sb3_parallel_sliding
 from src.evaluation.eval_outputs import save_eval_outputs
 from src.evaluation.eval_config import build_sb3_eval_context
 from src.utils.callbacks import LivePlotCallback
+from stable_baselines3.common.callbacks import CallbackList # Importar para combinar callbacks
 
 class A2CAgent:
     """
@@ -44,13 +45,20 @@ class A2CAgent:
     # ENTRENAMIENTO
     # ============================================================
 
-    def train(self, total_episodes=2000):
+    def train(self, total_episodes=2000, hparams=None, extra_callback=None):
+        """
+        Entrena el agente.
+        total_episodes: Número total de episodios para entrenar. 
+        hparams: Diccionario de hiperparámetros sugeridos por Optuna.
+        extra_callback: Callback de Optuna para pruning.
+        """
+
         print("Comienzo de entrenamiento A2C...")
         t0 = time.perf_counter()
 
         # Crear entornos paralelos
         # SubprocVecEnv/DummyVecEnv esperan una lista de *callables* que construyen envs
-        env_fns = [lambda: make_train_env("a2c", deterministico=self.deterministico, seed=self.seed + i) for i in range(self.n_envs)]
+        env_fns = [lambda: make_train_env("a2c", deterministico=self.deterministico, seed=self.seed) for _ in range(self.n_envs)]
         if self.use_subproc:
             vec_constructor = SubprocVecEnv(env_fns)
         else:
@@ -73,23 +81,36 @@ class A2CAgent:
         fig_path = paths["fig_path"]
         model_path = paths["model_path"]
 
+        learning_rate = hparams.get("learning_rate", 5e-5) if hparams else 5e-5
+        gamma = hparams.get("gamma", 0.99) if hparams else 0.99
+        n_steps = hparams.get("n_steps", 104) if hparams else 104 
+
         # Modelo A2C
         self.model = A2C(
             "MlpPolicy",
             self.vec_env,
             verbose=1,
-            n_steps=104,
-            learning_rate=3e-4,
-            gamma=0.999,
+            n_steps=n_steps,
+            learning_rate=learning_rate,
+            gamma=gamma,
             device="auto",
             seed=self.seed,
         )
 
-        callback = LivePlotCallback(
+        # Callback para graficar recompensas en vivo   
+        plot_callback = LivePlotCallback(
             window=100, refresh_every=10, filename=str(fig_path)
         )
 
-        self.model.learn(total_timesteps=total_timesteps, callback=callback)
+        # Combinar con el callback de Optuna si se proporciona
+        callbacks = [plot_callback]
+        if extra_callback is not None:
+            callbacks.append(extra_callback)
+        
+        callback_list = CallbackList(callbacks)
+
+        # Entrenar usando la lista de callbacks
+        self.model.learn(total_timesteps=total_timesteps, callback=callback_list)
 
         # Guardar modelo
         save_run_artifacts(self.model, model_path)
@@ -101,16 +122,15 @@ class A2CAgent:
     # CARGA
     # ============================================================
 
-    def load(self, model_path: Path, mode_eval="historico"):
-        """
-        Carga un modelo A2C entrenado.
-        """
+    def load(self, model_path: Path, mode_eval="historico", n_envs=8):
         print(f"Cargando modelo A2C desde {model_path}...")
         self.model = load_sb3_model(A2C, model_path)
         print("Modelo cargado.")
 
-        # Crear env dummy para evaluación
-        env_vec = DummyVecEnv([lambda: make_eval_env("a2c", modo=mode_eval, deterministico=self.deterministico, seed=self.seed)])
+        # Construimos el entorno base correcto 
+        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=self.seed)
+
+        env_vec = DummyVecEnv(self.ctx.env_fns)
 
         self.vec_env = env_vec
         return env_vec
@@ -126,11 +146,18 @@ class A2CAgent:
         stride_weeks=52,
         n_envs=8,
         mode_eval="historico",
+        eval_seed=None
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo A2C.")
 
-        ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=self.seed)
+        if not hasattr(self, "ctx") or self.ctx is None:
+            self.ctx = build_sb3_eval_context(
+                alg=self.alg, 
+                n_envs=n_envs, 
+                mode_eval=mode_eval, 
+                seed=eval_seed
+            )
 
         print("Iniciando evaluación A2C...")
         if self.deterministico == 0:
@@ -138,7 +165,7 @@ class A2CAgent:
 
         df_avg, df_all = evaluar_sb3_parallel_sliding(
             self.model,
-            env_fns=ctx.env_fns,
+            env_fns=self.ctx.env_fns,
             n_eval_episodes=n_eval_episodes,
             window_weeks=window_weeks,
             stride_weeks=stride_weeks,
@@ -149,8 +176,8 @@ class A2CAgent:
             df_avg,
             df_all,
             alg=self.alg,
-            fecha=ctx.fecha,
-            mode_tag_str=ctx.mode_tag_str,
+            fecha=self.ctx.fecha,
+            mode_tag_str=self.ctx.mode_tag_str,
             estados_cols=["volumen", "hidrologia", "tiempo", "aportes", "vertimiento", "volumen_turbinado"],
             n_eval_episodes=n_eval_episodes,
         )

@@ -3,6 +3,7 @@ gymnasium>=0.29.1
 stable-baselines3>=2.3.2
 sb3-contrib>=2.3.0
 optuna>=3.0.0
+optuna-integration>=3.0.0
 
 # Datos y Cálculo
 numpy>=1.26.0

@@ -9,18 +9,13 @@ import argparse
 import sys
 from src.rl_algorithms import PPOAgent, A2CAgent, QLearningAgent
 from src.utils.paths import get_latest_model
+from src.utils.hparam_tuning import HyperparameterTuner
 
-import random
 import numpy as np
-import torch
 
 # Fijar semilla para reproducibilidad
 seed = None
-
-# Estas líneas "inyectan" la seed en los motores de las librerías
-# random.seed(seed)
-# np.random.seed(seed)
-# torch.manual_seed(seed)
+eval_seed = 42
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -28,8 +23,8 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument("--alg", choices=["ppo", "a2c", "ql"], required=True)
-    parser.add_argument("--mode", choices=["train", "train_eval", "eval"], required=True)
-
+    parser.add_argument("--mode", choices=["train", "train_eval", "eval", "tune"], required=True)
+    
     parser.add_argument("--det", type=int, choices=[0, 1], default=0, help="1 para usar aportes determinísticos, 0 para estocásticos")
 
     # Entrenamiento (nota: para QL el default lógico es 3000)
@@ -50,11 +45,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--n-envs", type=int, default=8)
     parser.add_argument("--a2c-dummy", action="store_true")
 
+    # Argumento opcional para el número de pruebas de Optuna
+    parser.add_argument("--n-trials", type=int, default=50, help="Número de pruebas para Optuna")
+
     return parser.parse_args()
 
 def main() -> None:
     args = parse_args()
     print(f"Algoritmo: {args.alg}, Modo de ejecución: {args.mode}")
+
+    # =========================
+    # Modo Tuning con Optuna
+    # =========================
+    if args.mode == "tune":
+        print(f"Iniciando Hyperparameter Tuning para {args.alg} con {args.n_trials} pruebas...")
+        tuner = HyperparameterTuner(alg=args.alg, deterministico=args.det, seed=seed)
+        tuner.tune(n_trials=args.n_trials)
+        print(f"Tuning completado.")
+        return
     
     # =========================
     # Instanciar agente
@@ -97,6 +105,7 @@ def main() -> None:
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
                 mode_eval=args.mode_eval,
+                eval_seed=eval_seed
             )
 
         elif args.alg == "ql":
@@ -104,6 +113,7 @@ def main() -> None:
                 n_eval_episodes=args.n_eval_episodes,
                 num_pasos=args.num_pasos,
                 mode_eval=args.mode_eval,
+                eval_seed=eval_seed
             )
     
     elif args.mode == "eval":
@@ -115,6 +125,7 @@ def main() -> None:
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
                 mode_eval=args.mode_eval,
+                eval_seed=eval_seed
             )
             agent.close_env()
         elif args.alg == "a2c":
@@ -125,6 +136,7 @@ def main() -> None:
                 stride_weeks=args.stride_weeks,
                 n_envs=args.n_envs,
                 mode_eval=args.mode_eval,
+                eval_seed=eval_seed
             )
         else: # ql
             agent.load(model_path, mode_eval=args.mode_eval)
@@ -132,6 +144,7 @@ def main() -> None:
                 n_eval_episodes=args.n_eval_episodes,
                 num_pasos=args.num_pasos,
                 mode_eval=args.mode_eval,
+                eval_seed=eval_seed
             )
 
 if __name__ == "__main__":

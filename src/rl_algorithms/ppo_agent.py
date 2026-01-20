@@ -18,10 +18,11 @@ from src.utils.io import (
     save_run_artifacts
 )
 from src.evaluation.evaluator_sb3 import evaluar_sb3_parallel_sliding
-from src.environment.env_factory import make_train_env, make_eval_env
+from src.environment.env_factory import make_train_env
 from src.evaluation.eval_outputs import save_eval_outputs
 from src.evaluation.eval_config import build_sb3_eval_context
 from src.utils.callbacks import LivePlotCallback
+from stable_baselines3.common.callbacks import CallbackList # Importar para combinar callbacks
 
 class PPOAgent:
     """
@@ -35,11 +36,18 @@ class PPOAgent:
         self.deterministico = deterministico
         self.seed = seed
 
-    def train(self, total_episodes=2000, hparams=None):
+    def train(self, total_episodes=2000, hparams=None, extra_callback=None):
+        """
+        Entrena el agente.
+        total_episodes: Número total de episodios para entrenar. 
+        hparams: Diccionario de hiperparámetros sugeridos por Optuna.
+        extra_callback: Callback de Optuna para pruning.
+        """
+
         print("Comienzo de entrenamiento PPO...")
         t0 = time.perf_counter()
 
-        self.vec_env = DummyVecEnv([lambda: make_train_env("ppo", deterministico=self.deterministico, seed=self.seed + i if self.seed is not None else None) for i in range(self.n_envs)])
+        self.vec_env = DummyVecEnv([lambda: make_train_env("ppo", deterministico=self.deterministico, seed=self.seed) for _ in range(self.n_envs)])
         self.vec_env = VecMonitor(self.vec_env)
         self.vec_env = VecNormalize(self.vec_env, norm_obs=True, norm_reward=True, clip_obs=10.0)
 
@@ -64,16 +72,18 @@ class PPOAgent:
         )
 
         learning_rate = hparams.get("learning_rate", 5e-5) if hparams else 5e-5
-        gamma = hparams.get("gamma", 0.99) if hparams else 0.99        
+        gamma = hparams.get("gamma", 0.99) if hparams else 0.99
+        n_steps = hparams.get("n_steps", 104) if hparams else 104
+        ent_coef = hparams.get("ent_coef", 0.005) if hparams else 0.005            
 
         self.model = RecurrentPPO(
             MlpLstmPolicy,
             self.vec_env,
             policy_kwargs=policy_kwargs,
             verbose=1,
-            n_steps=104,
+            n_steps=n_steps,
             gamma=gamma,
-            ent_coef=0.005,
+            ent_coef=ent_coef,
             learning_rate=learning_rate,
             device="auto",
             seed=self.seed,
@@ -83,9 +93,19 @@ class PPOAgent:
         log_path = "./results/logs/ppo_training/"
         new_logger = configure(log_path, ["stdout", "csv", "log", "tensorboard"])
         self.model.set_logger(new_logger)
+        
+        # Callback para graficar recompensas en vivo   
+        plot_callback = LivePlotCallback(window=100, refresh_every=10, filename=str(fig_path))
 
-        callback = LivePlotCallback(window=100, refresh_every=10, filename=str(fig_path))
-        self.model.learn(total_timesteps=total_timesteps, callback=callback)
+        # Combinar con el callback de Optuna si se proporciona
+        callbacks = [plot_callback]
+        if extra_callback is not None:
+            callbacks.append(extra_callback)
+        
+        callback_list = CallbackList(callbacks)
+
+        # Entrenar usando la lista de callbacks
+        self.model.learn(total_timesteps=total_timesteps, callback=callback_list)
 
         save_run_artifacts(self.model, model_path, self.vec_env, vecnorm_path)
 
@@ -97,13 +117,12 @@ class PPOAgent:
         self.model = load_sb3_model(RecurrentPPO, model_path)
         print("Modelo cargado.")
 
-        # 1. Construimos el entorno base CORRECTO (Histórico) aquí
-        # Esto asegura que el entorno subyacente tenga los datos completos (índices > 6000)
+        # Construimos el entorno base correcto
         self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=self.seed)
         
         base_env = DummyVecEnv(self.ctx.env_fns)
 
-        # 2. Aplicamos la normalización sobre ese entorno base
+        # Aplicamos la normalización sobre ese entorno base
         if path_vec_normalize:
             print(f"Cargando estadísticas de normalización desde {path_vec_normalize}")
             self.vec_env = VecNormalize.load(path_vec_normalize, base_env)
@@ -122,10 +141,20 @@ class PPOAgent:
         n_eval_episodes=114,
         window_weeks=156,
         stride_weeks=52,
+        n_envs = 8,
         mode_eval="historico",
+        eval_seed=None
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo PPO.")
+
+        if not hasattr(self, "ctx") or self.ctx is None:
+            self.ctx = build_sb3_eval_context(
+                alg=self.alg, 
+                n_envs=n_envs, 
+                mode_eval=mode_eval, 
+                seed=eval_seed
+            )
 
         print("Iniciando evaluación PPO...")
         if self.deterministico == 0:
