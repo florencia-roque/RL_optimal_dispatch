@@ -6,6 +6,7 @@ from pathlib import Path
 from sb3_contrib import RecurrentPPO
 from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
 from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor, VecNormalize
+from stable_baselines3.common.logger import configure
 
 from src.utils.paths import (
     timestamp,
@@ -46,7 +47,7 @@ class PPOAgent:
         print("Comienzo de entrenamiento PPO...")
         t0 = time.perf_counter()
 
-        self.vec_env = DummyVecEnv([lambda: make_train_env("ppo", deterministico=self.deterministico, seed=None) for _ in range(self.n_envs)])
+        self.vec_env = DummyVecEnv([lambda: make_train_env("ppo", deterministico=self.deterministico, seed=self.seed) for _ in range(self.n_envs)])
         self.vec_env = VecMonitor(self.vec_env)
         self.vec_env = VecNormalize(self.vec_env, norm_obs=True, norm_reward=True, clip_obs=10.0)
 
@@ -88,6 +89,11 @@ class PPOAgent:
             seed=self.seed,
         )
 
+        # Logger
+        log_path = "./results/logs/ppo_training/"
+        new_logger = configure(log_path, ["stdout", "csv", "log", "tensorboard"])
+        self.model.set_logger(new_logger)
+        
         # Callback para graficar recompensas en vivo   
         plot_callback = LivePlotCallback(window=100, refresh_every=10, filename=str(fig_path))
 

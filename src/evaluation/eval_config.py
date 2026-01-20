@@ -64,7 +64,7 @@ def build_sb3_eval_context(
 
     modo = str(mode_eval).lower()
 
-    env_fns = [lambda m=modo: make_eval_env(alg, modo=m, seed=seed + i) for i in range(n_envs)]
+    env_fns = [lambda m=modo: make_eval_env(alg, modo=m, seed=seed + i if seed is not None else None) for i in range(n_envs)]
 
     tmp_env = env_fns[0]()
     inner = tmp_env.unwrapped
