@@ -46,6 +46,11 @@ class QLearningAgent:
         self.gamma = hparams.get("gamma", 0.99) if hparams else 0.99
         self.epsilon = hparams.get("epsilon", 0.01) if hparams else 0.01
 
+        # hiperparametros hallados por optuna (hardcodeados!)
+        self.alpha = 0.0069059394803614
+        self.gamma = 0.9974407281619924
+        self.epsilon = 0.0817594479135859
+
         # Inicializar Q en el agente
         n_states = inner.observation_space.n
         n_actions = inner.action_space.n

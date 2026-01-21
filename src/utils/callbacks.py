@@ -49,10 +49,24 @@ class _LivePlotBase:
         self.ax.set_xlabel("Episode", labelpad=8)
         self.ax.set_ylabel("Reward (MUSD)", labelpad=8)
         self.ax.set_title(title or "", pad=8)
-        self.ax.grid(True)
+        self.ax.grid(True, linestyle='--', alpha=0.6)
 
-        (self.line,) = self.ax.plot([], [], lw=1, label="Reward")
-        (self.line_avg,) = self.ax.plot([], [], lw=2, label=f"Moving average ({self.window})")
+        # Gráfica "ruidosa" (Reward instantáneo): Color rosa viejo
+        (self.line,) = self.ax.plot(
+            [], [], 
+            lw=1, 
+            color="#8D7673",  
+            alpha=0.6,       
+            label="Reward"
+        )
+        
+        # Gráfica "tendencia" (Media móvil): Color rojo oscuro
+        (self.line_avg,) = self.ax.plot(
+            [], [], 
+            lw=2,          
+            color='#D32F2F',  
+            label=f"Moving average ({self.window})"
+        )
 
         self.ax.legend()
         self.fig.show()
