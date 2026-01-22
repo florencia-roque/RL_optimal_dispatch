@@ -74,7 +74,13 @@ class PPOAgent:
         learning_rate = hparams.get("learning_rate", 5e-5) if hparams else 5e-5
         gamma = hparams.get("gamma", 0.99) if hparams else 0.99
         n_steps = hparams.get("n_steps", 104) if hparams else 104
-        ent_coef = hparams.get("ent_coef", 0.005) if hparams else 0.005            
+        ent_coef = hparams.get("ent_coef", 0.005) if hparams else 0.005
+
+        # hiperparametros hallados por optuna (hardcodeados!)
+        learning_rate = 1.9694437290033328e-05
+        gamma = 0.9922058818530016
+        n_steps = 137
+        ent_coef = 0.0002918704130075
 
         self.model = RecurrentPPO(
             MlpLstmPolicy,

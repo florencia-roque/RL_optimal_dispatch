@@ -58,7 +58,7 @@ class HyperparameterTuner:
             else:
                 # PPO / A2C (SB3): Usamos el callback manual
                 pruning_callback = TrialPruningCallback(trial, monitor="rollout/ep_rew_mean")
-                agent.train(total_episodes=500, hparams=hparams, extra_callback=pruning_callback)
+                agent.train(total_episodes=1000, hparams=hparams, extra_callback=pruning_callback)
 
             # Evaluación final (común para todos)
             df_avg, _ = agent.evaluate(n_eval_episodes=20, eval_seed=42)
