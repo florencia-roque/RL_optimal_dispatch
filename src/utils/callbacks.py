@@ -40,17 +40,18 @@ class _LivePlotBase:
         # Requisitos CMES
         plt.rcParams.update({
             "font.family": "Arial",   
-            "font.size": 10,          
-            "axes.titlesize": 11,     
-            "axes.labelsize": 10,     
-            "xtick.labelsize": 9,     
-            "ytick.labelsize": 9,
-            "legend.fontsize": 9,
-        })
+            "font.size": 9,          
+            "axes.titlesize": 10,     
+            "axes.labelsize": 9,     
+            "xtick.labelsize": 8,     
+            "ytick.labelsize": 8,
+            "legend.fontsize": 8,
+        }) 
 
         self.fig, self.ax = plt.subplots(figsize=(6.5, 4.5), dpi=600, layout="constrained")
-        self.ax.set_xlabel("Episode", labelpad=8)
-        self.ax.set_ylabel("Reward (MUSD)", labelpad=8)
+        self.ax.set_xlabel("Episode")
+        self.ax.set_ylabel("Reward (MUSD)")
+        
         # self.ax.set_title(title or "", pad=8)
         self.ax.grid(True, linestyle='--', alpha=0.6)
 
@@ -115,8 +116,8 @@ class _LivePlotBase:
 
         tiff_path = out.with_suffix(".tif")
 
-        self.fig.savefig(str(png_path), dpi=400, bbox_inches="tight")
-        self.fig.savefig(str(pdf_path), bbox_inches="tight")
+        self.fig.savefig(str(png_path), dpi=600, bbox_inches="tight", pad_inches=0)
+        self.fig.savefig(str(pdf_path), bbox_inches="tight", pad_inches=0)  # vectorial para el paper
 
         # compression='tiff_lzw': Recomendado para que el archivo no pese 100MB (sin perder calidad)
         self.fig.savefig(
@@ -125,7 +126,7 @@ class _LivePlotBase:
             format="tiff", 
             facecolor='white', 
             transparent=False,
-            bbox_inches=None,
+            bbox_inches="tight",
             pad_inches=0,
             pil_kwargs={"compression": "tiff_lzw"}
         )
@@ -161,7 +162,7 @@ class _LivePlotBase:
             dpi=(600, 600),
             compression="tiff_lzw"
         )
-        print("✅ Imagen corregida y guardada exitosamente (RGB, 6.5\", 600 DPI).")
+        print("Imagen corregida y guardada exitosamente (RGB, 6.5\", 600 DPI).")
         # ---------------------------------------
 
         plt.ioff()
