@@ -6,6 +6,7 @@ from pathlib import Path
 from sb3_contrib import RecurrentPPO
 from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
 from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor, VecNormalize
+from stable_baselines3.common.logger import configure
 
 from src.utils.paths import (
     timestamp,
@@ -17,7 +18,7 @@ from src.utils.io import (
     save_run_artifacts
 )
 from src.evaluation.evaluator_sb3 import evaluar_sb3_parallel_sliding
-from src.environment.env_factory import make_train_env, make_eval_env
+from src.environment.env_factory import make_train_env
 from src.evaluation.eval_outputs import save_eval_outputs
 from src.evaluation.eval_config import build_sb3_eval_context
 from src.utils.callbacks import LivePlotCallback
@@ -46,7 +47,7 @@ class PPOAgent:
         print("Comienzo de entrenamiento PPO...")
         t0 = time.perf_counter()
 
-        self.vec_env = DummyVecEnv([lambda: make_train_env("ppo", deterministico=self.deterministico, seed=None) for _ in range(self.n_envs)])
+        self.vec_env = DummyVecEnv([lambda: make_train_env("ppo", deterministico=self.deterministico, seed=self.seed) for _ in range(self.n_envs)])
         self.vec_env = VecMonitor(self.vec_env)
         self.vec_env = VecNormalize(self.vec_env, norm_obs=True, norm_reward=True, clip_obs=10.0)
 
@@ -88,6 +89,11 @@ class PPOAgent:
             seed=self.seed,
         )
 
+        # Logger
+        log_path = "./results/logs/ppo_training/"
+        new_logger = configure(log_path, ["stdout", "csv", "log", "tensorboard"])
+        self.model.set_logger(new_logger)
+        
         # Callback para graficar recompensas en vivo   
         plot_callback = LivePlotCallback(window=100, refresh_every=10, filename=str(fig_path))
 
@@ -111,13 +117,12 @@ class PPOAgent:
         self.model = load_sb3_model(RecurrentPPO, model_path)
         print("Modelo cargado.")
 
-        # 1. Construimos el entorno base CORRECTO (Histórico) aquí
-        # Esto asegura que el entorno subyacente tenga los datos completos (índices > 6000)
+        # Construimos el entorno base correcto
         self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=self.seed)
         
         base_env = DummyVecEnv(self.ctx.env_fns)
 
-        # 2. Aplicamos la normalización sobre ese entorno base
+        # Aplicamos la normalización sobre ese entorno base
         if path_vec_normalize:
             print(f"Cargando estadísticas de normalización desde {path_vec_normalize}")
             self.vec_env = VecNormalize.load(path_vec_normalize, base_env)
@@ -138,6 +143,7 @@ class PPOAgent:
         stride_weeks=52,
         n_envs = 8,
         mode_eval="historico",
+        eval_seed=None
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo PPO.")
@@ -147,7 +153,7 @@ class PPOAgent:
                 alg=self.alg, 
                 n_envs=n_envs, 
                 mode_eval=mode_eval, 
-                seed=self.seed
+                seed=eval_seed
             )
 
         print("Iniciando evaluación PPO...")

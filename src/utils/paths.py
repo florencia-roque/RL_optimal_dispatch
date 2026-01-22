@@ -34,9 +34,11 @@ def mode_tag(deterministico: int, modo: str) -> str:
     - est_<modo>  si DETERMINISTICO == 0
     - det_<modo>  si DETERMINISTICO == 1
     """
-    pref = "est" if deterministico == 0 else "det"
- 
-    return f"{pref}_{modo}"
+
+    if deterministico == 1:
+        return "det"
+    else:
+        return f"est_{modo}"
 
 # =======================
 # Rutas de entrenamiento

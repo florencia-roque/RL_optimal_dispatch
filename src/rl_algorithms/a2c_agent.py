@@ -15,7 +15,7 @@ from src.utils.io import (
     load_sb3_model,
     save_run_artifacts
 )
-from src.environment.env_factory import make_train_env, make_eval_env
+from src.environment.env_factory import make_train_env
 from src.evaluation.evaluator_sb3 import evaluar_sb3_parallel_sliding
 from src.evaluation.eval_outputs import save_eval_outputs
 from src.evaluation.eval_config import build_sb3_eval_context
@@ -122,16 +122,15 @@ class A2CAgent:
     # CARGA
     # ============================================================
 
-    def load(self, model_path: Path, mode_eval="historico"):
-        """
-        Carga un modelo A2C entrenado.
-        """
+    def load(self, model_path: Path, mode_eval="historico", n_envs=8):
         print(f"Cargando modelo A2C desde {model_path}...")
         self.model = load_sb3_model(A2C, model_path)
         print("Modelo cargado.")
 
-        # Crear env dummy para evaluación
-        env_vec = DummyVecEnv([lambda: make_eval_env("a2c", modo=mode_eval, deterministico=self.deterministico, seed=self.seed)])
+        # Construimos el entorno base correcto 
+        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=self.seed)
+
+        env_vec = DummyVecEnv(self.ctx.env_fns)
 
         self.vec_env = env_vec
         return env_vec
@@ -147,6 +146,7 @@ class A2CAgent:
         stride_weeks=52,
         n_envs=8,
         mode_eval="historico",
+        eval_seed=None
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo A2C.")
@@ -156,7 +156,7 @@ class A2CAgent:
                 alg=self.alg, 
                 n_envs=n_envs, 
                 mode_eval=mode_eval, 
-                seed=self.seed
+                seed=eval_seed
             )
 
         print("Iniciando evaluación A2C...")

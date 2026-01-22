@@ -1,5 +1,7 @@
 # tools/visualizadorCronica.py
 
+import os
+from matplotlib import ticker
 import pandas as pd
 import matplotlib.pyplot as plt
 from tkinter import Tk, filedialog
@@ -56,49 +58,52 @@ plt.rcParams.update({
 })
 
 # Crear figura alta resolución
-fig, ax = plt.subplots(figsize=(14, 6), dpi=400)
+fig, ax = plt.subplots(figsize=(14, 6), dpi=100)
 
 # Áreas apiladas
 ax.stackplot(
     x,
-    df[col_turbinada],     # Hydro (azul por defecto)
-    df[col_termico_bajo],  # Thermal low-cost (naranja)
-    df[col_termico_alto],  # Thermal high-cost (verde)
+    df[col_turbinada]/1000,     # Hydro (azul por defecto)
+    df[col_termico_bajo]/1000,  # Thermal low-cost (naranja)
+    df[col_termico_alto]/1000,  # Thermal high-cost (verde)
     labels=["Hydro", "Thermal low-cost", "Thermal high-cost"],
-    colors=["#40a0e5", "#fffb87", "#e35e5e"]  # azul, naranja, verde
+    colors=["#b8fff6", "#fbd1e7", "#ff0000"]  # turquesa, naranja, rojo
 )
 
 # Demanda (negro)
-ax.plot(x, df[col_demanda], label="Demand", color="black", linewidth=2)
+ax.plot(x, df[col_demanda]/1000, label="Demand", color="#000000", linewidth=2.4)
 
 # Eje secundario
 ax2 = ax.twinx()
 
+ax.set_xlim(x.min(), x.max())
+
 # Inflows: marrón punteado
-ax2.plot(x, df[col_aportes], label="Inflows", color="#8B4513", linestyle="--", linewidth=2.2)
+ax2.plot(x, df[col_aportes], label="Inflows", color="#25802B", linestyle="--", linewidth=2.4)
 
 # Reservoir volume: **naranja continua**
-ax2.plot(x, df[col_volumen], label="Reservoir volume", color="#ff7f0e", linestyle="-", linewidth=2.4)
+ax2.plot(x, df[col_volumen], label="Reservoir volume", color="#220eff", linestyle="-", linewidth=2.4)
 
 # Títulos y etiquetas (en inglés)
-ax.set_title("Energies: Generation and Demand / Volume and Inflows", pad=8)
+ax.set_title("Out-of-sample policy performance under historical chronicle evaluation", pad=8)
 ax.set_xlabel("Week", labelpad=8)
-ax.set_ylabel("Energy [MWh]", labelpad=8)
+ax.set_ylabel("Energy (GWh)", labelpad=8)
 
 # Etiqueta del eje derecho más chica y con espacio extra para que no se corte
-ax2.set_ylabel("Volume [hm³]/Inflows [hm³/week]", fontsize=19, labelpad=8)
+ax2.set_ylabel("Volume (hm³) - Inflows (hm³/week)", fontsize=19, labelpad=8)
 
 # Leyenda combinada, un poco más abajo para no chocar con 'Week'
 h1, l1 = ax.get_legend_handles_labels()
 h2, l2 = ax2.get_legend_handles_labels()
 ax.legend(h1 + h2, l1 + l2, loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=4)
-
+ 
 # Layout: más margen derecho y abajo para etiquetas y leyenda
 plt.tight_layout(rect=[0, 0, 0.98, 1])  # deja 2% libre a la derecha
 fig.subplots_adjust(right=0.89, bottom=0.28)
 
 # Guardado
-# os.makedirs("figures", exist_ok=True)
-# plt.savefig("figures/dispatch_evaluation_det.png", dpi=400, bbox_inches="tight")
-# plt.savefig("figures/dispatch_evaluation_det.pdf", bbox_inches="tight")  # vectorial para el paper
+alg = "ql" # Cambiar según el algoritmo usado
+os.makedirs(f"results/figures/{alg}/chronicles", exist_ok=True)
+# plt.savefig(f"results/figures/{alg}/chronicles/dispatch_evaluation_est_promedio.png", dpi=400, bbox_inches="tight")
+# plt.savefig(f"results/figures/{alg}/chronicles/dispatch_evaluation_est_promedio.pdf", bbox_inches="tight")  # vectorial para el paper
 plt.show()

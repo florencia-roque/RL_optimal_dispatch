@@ -46,6 +46,11 @@ class QLearningAgent:
         self.gamma = hparams.get("gamma", 0.99) if hparams else 0.99
         self.epsilon = hparams.get("epsilon", 0.01) if hparams else 0.01
 
+        # hiperparametros hallados por optuna (hardcodeados!)
+        self.alpha = 0.0069059394803614
+        self.gamma = 0.9974407281619924
+        self.epsilon = 0.0817594479135859
+
         # Inicializar Q en el agente
         n_states = inner.observation_space.n
         n_actions = inner.action_space.n
@@ -129,11 +134,16 @@ class QLearningAgent:
         self.env = make_eval_env("ql", modo=mode_eval, deterministico=self.deterministico, seed=self.seed)
         return self.env
 
-    def evaluate(self, n_eval_episodes=116, num_pasos=None, mode_eval="historico"):
+    def evaluate(self, n_eval_episodes=116, num_pasos=None, mode_eval="historico", eval_seed=None):
         if self.env is None or self.Q is None:
             raise RuntimeError("Primero cargar o entrenar el agente Q-learning.")
 
         inner = self.env.unwrapped
+
+        current_seed = eval_seed if eval_seed is not None else self.seed
+
+        if current_seed is not None:
+             inner.reset(seed=current_seed)
 
         if self.deterministico == 0 and hasattr(inner, "MODO"):
             if inner.MODO != mode_eval:

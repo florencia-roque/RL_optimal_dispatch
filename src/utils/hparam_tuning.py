@@ -54,14 +54,14 @@ class HyperparameterTuner:
         try:
             if self.alg == "ql":
                 # Q-Learning manual: Pasamos el trial directo
-                agent.train(total_episodes=2000, hparams=hparams, trial=trial)
+                agent.train(total_episodes=1500, hparams=hparams, trial=trial)
             else:
                 # PPO / A2C (SB3): Usamos el callback manual
                 pruning_callback = TrialPruningCallback(trial, monitor="rollout/ep_rew_mean")
                 agent.train(total_episodes=500, hparams=hparams, extra_callback=pruning_callback)
 
             # Evaluación final (común para todos)
-            df_avg, _ = agent.evaluate(n_eval_episodes=20)
+            df_avg, _ = agent.evaluate(n_eval_episodes=20, eval_seed=42)
             score = df_avg["reward"].mean()
             
             self._save_trial(trial.number, hparams, score)
@@ -88,7 +88,7 @@ class HyperparameterTuner:
             return {
                 "alpha": trial.suggest_float("alpha", 1e-4, 1e-1, log=True),
                 "gamma": trial.suggest_float("gamma", 0.8, 0.9999, log=True),
-                "epsilon": trial.suggest_float("exploration_rate", 1e-3, 0.1, log=True),
+                "epsilon": trial.suggest_float("epsilon", 1e-3, 0.1, log=True),
             }       
 
     def _create_agent(self):

@@ -2,34 +2,36 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "RL: Ejecución Personalizada",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/main.py",
-            "args": [
-                "--alg", "${input:chooseAlg}",
-                "--mode", "${input:chooseMode}",
-                "--det", "${input:chooseDet}",
-                "--total-episodes", "${input:episodes}",
-                "--mode-eval", "${input:evalMode}"
-            ],
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "RL Tuning (Optuna)",
+            "name": "Entrenar / Evaluar",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/main.py",
             "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--alg", "${input:chooseAlg}",
+                "--mode", "${input:chooseMode}",
+                "--total-episodes", "${input:episodes}",
+                "--det", "${input:chooseDet}",
+                "--mode-eval", "${input:evalMode}",
+                "--a2c-dummy"
+            ],
+            "env": { "PYTHONPATH": "${workspaceFolder}" }
+        },
+        {
+            "name": "Tuning con Optuna",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
             "args": [
                 "--alg", "${input:chooseAlg}",
                 "--mode", "tune",
-                "--n-trials", "10",
+                "--n-trials", "${input:chooseTrials}",
                 "--det", "${input:chooseDet}",
                 "--a2c-dummy"
-            ],
-            "justMyCode": true
+            ]
         }
     ],
     "inputs": [
@@ -44,7 +46,7 @@
             "id": "chooseMode",
             "type": "pickString",
             "description": "Modo de ejecución:",
-            "options": ["train", "train_eval", "eval", "tune"],
+            "options": ["train", "train_eval", "eval"],
             "default": "train"
         },
         {
@@ -66,6 +68,12 @@
             "description": "Usar aportes determinísticos (1) o estocásticos (0):",
             "options": ["0", "1"],
             "default": "0"
+        },
+        {
+            "id": "chooseTrials",
+            "type": "promptString",
+            "description": "¿Cuántos trials quieres ejecutar con Optuna?",
+            "default": "20"
         }
     ]
 }
