@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from pathlib import Path
+from PIL import Image
 from typing import Optional
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,27 +36,29 @@ class _LivePlotBase:
         # Interactivo
         plt.ion()
 
-        # Estilo global
+        # Configuración global de estilo
+        # Requisitos CMES
         plt.rcParams.update({
-            "font.size": 20,
-            "axes.titlesize": 22,
-            "axes.labelsize": 10,
-            "xtick.labelsize": 8,
-            "ytick.labelsize": 8,
-            "legend.fontsize": 10,
+            "font.family": "Arial",   
+            "font.size": 10,          
+            "axes.titlesize": 11,     
+            "axes.labelsize": 10,     
+            "xtick.labelsize": 9,     
+            "ytick.labelsize": 9,
+            "legend.fontsize": 9,
         })
 
-        self.fig, self.ax = plt.subplots(figsize=(14, 6), dpi=400)
+        self.fig, self.ax = plt.subplots(figsize=(6.5, 4.5), dpi=600, layout="constrained")
         self.ax.set_xlabel("Episode", labelpad=8)
         self.ax.set_ylabel("Reward (MUSD)", labelpad=8)
-        self.ax.set_title(title or "", pad=8)
+        # self.ax.set_title(title or "", pad=8)
         self.ax.grid(True, linestyle='--', alpha=0.6)
 
-        # Gráfica "ruidosa" (Reward instantáneo): Color rosa viejo
+        # Gráfica "ruidosa" (Reward instantáneo): Color gris
         (self.line,) = self.ax.plot(
             [], [], 
             lw=1, 
-            color="#8D7673",  
+            color="#686868",  
             alpha=0.6,       
             label="Reward"
         )
@@ -110,8 +113,56 @@ class _LivePlotBase:
 
         pdf_path = png_path.with_suffix(".pdf")
 
+        tiff_path = out.with_suffix(".tif")
+
         self.fig.savefig(str(png_path), dpi=400, bbox_inches="tight")
         self.fig.savefig(str(pdf_path), bbox_inches="tight")
+
+        # compression='tiff_lzw': Recomendado para que el archivo no pese 100MB (sin perder calidad)
+        self.fig.savefig(
+            str(tiff_path), 
+            dpi=600, 
+            format="tiff", 
+            facecolor='white', 
+            transparent=False,
+            bbox_inches=None,
+            pad_inches=0,
+            pil_kwargs={"compression": "tiff_lzw"}
+        )
+
+        # Abrir la imagen que matplotlib generó mal
+        img = Image.open(tiff_path)
+
+        # CORREGIR MODO DE COLOR (Forzar RGB puro)
+        if img.mode != 'RGB':
+            print(f"Corrigiendo modo de color: {img.mode} -> RGB")
+            background = Image.new("RGB", img.size, (255, 255, 255)) # Fondo blanco
+            background.paste(img, mask=img.split()[3] if len(img.split()) > 3 else None) # Pegar encima
+            img = background
+
+        # CORREGIR TAMAÑO (Reescalar a 6.5 pulgadas exactas si es necesario)
+        target_width_inch = 6.5
+        dpi = 600
+        target_width_px = int(target_width_inch * dpi)
+        current_width_px = img.size[0]
+
+        # Solo reescalar si la diferencia es notable (>5%)
+        if abs(target_width_px - current_width_px) > (target_width_px * 0.05):
+            print(f"Corrigiendo tamaño: {current_width_px}px -> {target_width_px}px (Ancho 6.5\")")
+            aspect_ratio = img.size[1] / img.size[0]
+            target_height_px = int(target_width_px * aspect_ratio)
+            
+            # Reescalado de alta calidad (LANCZOS)
+            img = img.resize((target_width_px, target_height_px), Image.Resampling.LANCZOS)
+
+        # Guardar la versión FINAL CORREGIDA (Sobrescribir)
+        img.save(
+            tiff_path,
+            dpi=(600, 600),
+            compression="tiff_lzw"
+        )
+        print("✅ Imagen corregida y guardada exitosamente (RGB, 6.5\", 600 DPI).")
+        # ---------------------------------------
 
         plt.ioff()
         # no bloquea en ejecuciones no-interactivas
