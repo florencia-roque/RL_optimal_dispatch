@@ -70,7 +70,7 @@ ax.stackplot(
     df[col_termico_bajo]/1000,  # Thermal low-cost (naranja)
     df[col_termico_alto]/1000,  # Thermal high-cost (verde)
     labels=["Hydro", "Thermal low-cost", "Thermal high-cost"],
-    colors=["#b8fff6", "#fbd1e7", "#ff0000"]  # turquesa, naranja, rojo
+    colors=["#b8fff6", "#fbd1e7", "#ff0000"]  # turquesa, rosa, rojo
 )
 
 # Demanda (negro)
