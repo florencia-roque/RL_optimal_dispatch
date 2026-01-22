@@ -107,10 +107,10 @@ fig.subplots_adjust(right=0.89, bottom=0.28)
 # Guardado
 alg = "ql" # Cambiar según el algoritmo usado
 os.makedirs(f"results/figures/{alg}/chronicles/Historico", exist_ok=True)
-plt.savefig(f"results/figures/{alg}/chronicles/Historico/dispatch_evaluation_est_cronica_4_1914_hist.png", dpi=400, bbox_inches="tight")
+# plt.savefig(f"results/figures/{alg}/chronicles/Historico/dispatch_evaluation_est_cronica_4_1914_hist.png", dpi=600, bbox_inches="tight")
 plt.savefig(f"results/figures/{alg}/chronicles/Historico/dispatch_evaluation_est_cronica_4_1914_hist.pdf", bbox_inches="tight")  # vectorial para el paper
 
-tiff_path = f"results/figures/{alg}/chronicles/Historico/dispatch_evaluation_est_cronica_0_1914_hist.tif"
+tiff_path = f"results/figures/{alg}/chronicles/Historico/dispatch_evaluation_est_cronica_4_1914_hist.tif"
 
 # compression='tiff_lzw': Recomendado para que el archivo no pese 100MB (sin perder calidad)
 plt.savefig(
@@ -151,6 +151,6 @@ img.save(
     dpi=(600, 600),
     compression="tiff_lzw"
 )
-print("✅ Imagen corregida y guardada exitosamente (RGB, 6.5\", 600 DPI).")
+print("Imagen corregida y guardada exitosamente (RGB, 6.5\", 600 DPI).")
 # ---------------------------------------
 plt.show()
