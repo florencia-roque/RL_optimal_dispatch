@@ -106,11 +106,13 @@ fig.subplots_adjust(right=0.89, bottom=0.28)
 
 # Guardado
 alg = "ql" # Cambiar según el algoritmo usado
-os.makedirs(f"results/figures/{alg}/chronicles/Historico", exist_ok=True)
-# plt.savefig(f"results/figures/{alg}/chronicles/Historico/dispatch_evaluation_est_cronica_4_1914_hist.png", dpi=600, bbox_inches="tight")
-plt.savefig(f"results/figures/{alg}/chronicles/Historico/dispatch_evaluation_est_cronica_4_1914_hist.pdf", bbox_inches="tight")  # vectorial para el paper
+modo_eval = "Deterministico" # Historico o Markov o Deterministico
+final_nombre = "det"
 
-tiff_path = f"results/figures/{alg}/chronicles/Historico/dispatch_evaluation_est_cronica_4_1914_hist.tif"
+os.makedirs(f"results/figures/{alg}/chronicles/{modo_eval}", exist_ok=True)
+plt.savefig(f"results/figures/{alg}/chronicles/{modo_eval}/dispatch_evaluation_{final_nombre}.pdf", bbox_inches="tight")  # vectorial para el paper
+
+tiff_path = f"results/figures/{alg}/chronicles/{modo_eval}/dispatch_evaluation_{final_nombre}.tif"
 
 # compression='tiff_lzw': Recomendado para que el archivo no pese 100MB (sin perder calidad)
 plt.savefig(
