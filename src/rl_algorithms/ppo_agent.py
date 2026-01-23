@@ -118,13 +118,13 @@ class PPOAgent:
         dt = (time.perf_counter() - t0) / 60
         print(f"Entrenamiento completado en {dt:.2f} minutos")
 
-    def load(self, model_path: Path, path_vec_normalize: Path | None = None, mode_eval="historico", n_envs=8):
+    def load(self, model_path: Path, path_vec_normalize: Path | None = None, mode_eval="historico", n_envs=8, eval_seed=None):
         print(f"Cargando modelo PPO desde {model_path}...")
         self.model = load_sb3_model(RecurrentPPO, model_path)
         print("Modelo cargado.")
 
         # Construimos el entorno base correcto
-        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=self.seed)
+        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=eval_seed)
         
         base_env = DummyVecEnv(self.ctx.env_fns)
 
