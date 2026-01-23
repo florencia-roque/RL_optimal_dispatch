@@ -4,8 +4,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from stable_baselines3.common.callbacks import BaseCallback
+
+# Determinar si el backend actual es interactivo
+_INTERACTIVE_BACKENDS = {
+    "Qt5Agg", "QtAgg", "TkAgg", "WXAgg", "GTK3Agg", "MacOSX"
+}
+_IS_INTERACTIVE_BACKEND = matplotlib.get_backend() in _INTERACTIVE_BACKENDS
 
 # ============================================================
 # Base común
@@ -32,8 +39,11 @@ class _LivePlotBase:
         self.rewards_ep: list[float] = []
         self.moving_avg: list[float] = []
 
-        # Interactivo
-        plt.ion()
+        # Interactivo sólo si el backend lo permite
+        if _IS_INTERACTIVE_BACKEND:
+            plt.ion()
+        else:
+            plt.ioff()
 
         # Estilo global
         plt.rcParams.update({
@@ -98,7 +108,12 @@ class _LivePlotBase:
         self.ax.autoscale_view()
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
-        plt.pause(0.001)
+        try:
+            if _IS_INTERACTIVE_BACKEND:
+                plt.pause(0.001)
+        except Exception:
+            # Evitar que fallos de backend interrumpan el entrenamiento
+            pass
 
     def _save_and_close(self) -> None:
         out = Path(self.filename)
@@ -114,8 +129,10 @@ class _LivePlotBase:
         self.fig.savefig(str(pdf_path), bbox_inches="tight")
 
         plt.ioff()
-        # no bloquea en ejecuciones no-interactivas
-        plt.show(block=False)
+        if _IS_INTERACTIVE_BACKEND:
+            plt.show(block=False)
+        else:
+            plt.close(self.fig)
 
 # ============================================================
 # Callback para SB3 (PPO/A2C)

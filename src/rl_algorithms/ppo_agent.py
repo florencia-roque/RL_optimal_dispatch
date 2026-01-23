@@ -7,6 +7,7 @@ from sb3_contrib import RecurrentPPO
 from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
 from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor, VecNormalize
 from stable_baselines3.common.logger import configure
+import torch
 
 from src.utils.paths import (
     timestamp,
@@ -28,7 +29,8 @@ class PPOAgent:
     """
     Clase para entrenar y evaluar PPO en el entorno Hydro-Thermal Continuo.
     """
-    def __init__(self, modo="ppo", n_envs=8, deterministico=0, seed=None):
+    def __init__(self, modo="ppo", n_envs=16, deterministico=0, seed=None):
+        print(f"Inicializando agente PPO con modo={modo}, n_envs={n_envs}, deterministico={deterministico}, seed={seed}")
         self.alg = modo
         self.n_envs = n_envs
         self.vec_env = None
@@ -75,12 +77,15 @@ class PPOAgent:
         gamma = hparams.get("gamma", 0.99) if hparams else 0.99
         n_steps = hparams.get("n_steps", 104) if hparams else 104
         ent_coef = hparams.get("ent_coef", 0.005) if hparams else 0.005
-
-        # hiperparametros hallados por optuna (hardcodeados!)
-        learning_rate = 1.9694437290033328e-05
-        gamma = 0.9922058818530016
-        n_steps = 137
-        ent_coef = 0.0002918704130075
+        
+        # Mejor score: -0.026321698005551536 con params: 
+        # {'learning_rate': 5.908826045446591e-06, 'gamma': 0.9991879834579956, 'n_steps': 64, 'ent_coef': 0.00013368839981133497}
+        learning_rate = 5.908826045446591e-06
+        gamma = 0.9991879834579956
+        n_steps = 64
+        ent_coef = 0.00013368839981133497
+        
+        print(f"Hiperparámetros de entrenamiento PPO: learning_rate={learning_rate}, gamma={gamma}, n_steps={n_steps}, ent_coef={ent_coef}")
 
         self.model = RecurrentPPO(
             MlpLstmPolicy,
@@ -91,7 +96,7 @@ class PPOAgent:
             gamma=gamma,
             ent_coef=ent_coef,
             learning_rate=learning_rate,
-            device="auto",
+            device="cuda" if torch.cuda.is_available() else "cpu",
             seed=self.seed,
         )
 

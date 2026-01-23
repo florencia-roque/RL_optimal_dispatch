@@ -68,7 +68,7 @@ def main() -> None:
     # Instanciar agente
     # =========================
     if args.alg == "ppo":
-        agent = PPOAgent(n_envs=args.n_envs, deterministico=args.det, seed=seed)
+        agent = PPOAgent(n_envs=16, deterministico=args.det, seed=seed)
 
     elif args.alg == "a2c":
         agent = A2CAgent(

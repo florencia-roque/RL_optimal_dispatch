@@ -58,7 +58,7 @@ class HyperparameterTuner:
             else:
                 # PPO / A2C (SB3): Usamos el callback manual
                 pruning_callback = TrialPruningCallback(trial, monitor="rollout/ep_rew_mean")
-                agent.train(total_episodes=1000, hparams=hparams, extra_callback=pruning_callback)
+                agent.train(total_episodes=500, hparams=hparams, extra_callback=pruning_callback)
 
             # Evaluación final (común para todos)
             df_avg, _ = agent.evaluate(n_eval_episodes=20, eval_seed=42)
@@ -73,10 +73,10 @@ class HyperparameterTuner:
     def _get_suggestions(self, trial):
         if self.alg == "ppo":
             return {
-                "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True),
-                "gamma": trial.suggest_float("gamma", 0.9, 0.9999, log=True),
+                "learning_rate": trial.suggest_float("learning_rate", 1e-6, 1e-4, log=True),
+                "gamma": trial.suggest_float("gamma", 0.98, 0.9999, log=False),
                 "n_steps": trial.suggest_int("n_steps", 64, 256, log=True),
-                "ent_coef": trial.suggest_float("ent_coef", 1e-8, 0.1, log=True),
+                "ent_coef": trial.suggest_float("ent_coef", 1e-8, 1e-2, log=True),
             }
         elif self.alg == "a2c":
             return {

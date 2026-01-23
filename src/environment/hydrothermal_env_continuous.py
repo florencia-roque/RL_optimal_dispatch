@@ -71,10 +71,22 @@ class HydroThermalEnvCont(gym.Env):
         self.data_demanda = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=3).iloc[:, 1:]
 
         # Agregar columna con promedio de crónicas
-        self.data_biomasa["PROMEDIO"] = self.data_biomasa.mean(axis=1)
-        self.data_eolico["PROMEDIO"] = self.data_eolico.mean(axis=1)
-        self.data_solar["PROMEDIO"] = self.data_solar.mean(axis=1)
-        self.data_demanda["PROMEDIO"] = self.data_demanda.mean(axis=1)
+        # Defragmentar creando una copia y luego asignar la columna
+        col_biomasa = self.data_biomasa.mean(axis=1)
+        self.data_biomasa = self.data_biomasa.copy()
+        self.data_biomasa["PROMEDIO"] = col_biomasa
+
+        col_eolico = self.data_eolico.mean(axis=1)
+        self.data_eolico = self.data_eolico.copy()
+        self.data_eolico["PROMEDIO"] = col_eolico
+
+        col_solar = self.data_solar.mean(axis=1)
+        self.data_solar = self.data_solar.copy()
+        self.data_solar["PROMEDIO"] = col_solar
+        
+        col_demanda = self.data_demanda.mean(axis=1)
+        self.data_demanda = self.data_demanda.copy()
+        self.data_demanda["PROMEDIO"] = col_demanda
 
         # Cargar matriz de aportes discretizada (con estado hidrológico 0,1,2,3,4)
         self.data_matriz_aportes_discreta = leer_archivo(str(CLAIRE_HIDROLOGIA_CSV), sep=",", header=0)
