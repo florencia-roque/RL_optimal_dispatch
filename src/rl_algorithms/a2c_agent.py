@@ -122,13 +122,13 @@ class A2CAgent:
     # CARGA
     # ============================================================
 
-    def load(self, model_path: Path, mode_eval="historico", n_envs=8):
+    def load(self, model_path: Path, mode_eval="historico", n_envs=8, eval_seed=None):
         print(f"Cargando modelo A2C desde {model_path}...")
         self.model = load_sb3_model(A2C, model_path)
         print("Modelo cargado.")
 
         # Construimos el entorno base correcto 
-        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=self.seed)
+        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=eval_seed)
 
         env_vec = DummyVecEnv(self.ctx.env_fns)
 

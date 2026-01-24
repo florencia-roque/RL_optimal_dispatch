@@ -77,16 +77,15 @@ class PPOAgent:
         gamma = hparams.get("gamma", 0.99) if hparams else 0.99
         n_steps = hparams.get("n_steps", 104) if hparams else 104
         ent_coef = hparams.get("ent_coef", 0.005) if hparams else 0.005
-        
-        # Mejor score: -0.026321698005551536 con params: 
-        # {'learning_rate': 5.908826045446591e-06, 'gamma': 0.9991879834579956, 'n_steps': 64, 'ent_coef': 0.00013368839981133497}
-        learning_rate = 5.908826045446591e-06
-        gamma = 0.9991879834579956
-        n_steps = 64
-        ent_coef = 0.00013368839981133497
-        
-        print(f"Hiperparámetros de entrenamiento PPO: learning_rate={learning_rate}, gamma={gamma}, n_steps={n_steps}, ent_coef={ent_coef}")
 
+        # hiperparametros hallados por optuna (hardcodeados!)
+        learning_rate = 1.9694437290033328e-05
+        gamma = 0.9922058818530016
+        n_steps = 137
+        ent_coef = 0.0002918704130075
+
+        print(f"Hiperparámetros de entrenamiento PPO: learning_rate={learning_rate}, gamma={gamma}, n_steps={n_steps}, ent_coef={ent_coef}")
+        
         self.model = RecurrentPPO(
             MlpLstmPolicy,
             self.vec_env,
@@ -123,13 +122,13 @@ class PPOAgent:
         dt = (time.perf_counter() - t0) / 60
         print(f"Entrenamiento completado en {dt:.2f} minutos")
 
-    def load(self, model_path: Path, path_vec_normalize: Path | None = None, mode_eval="historico", n_envs=8):
+    def load(self, model_path: Path, path_vec_normalize: Path | None = None, mode_eval="historico", n_envs=8, eval_seed=None):
         print(f"Cargando modelo PPO desde {model_path}...")
         self.model = load_sb3_model(RecurrentPPO, model_path)
         print("Modelo cargado.")
 
         # Construimos el entorno base correcto
-        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=self.seed)
+        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=eval_seed)
         
         base_env = DummyVecEnv(self.ctx.env_fns)
 

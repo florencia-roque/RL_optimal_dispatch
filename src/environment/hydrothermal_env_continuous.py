@@ -174,22 +174,25 @@ class HydroThermalEnvCont(gym.Env):
             # Con las cronicas coincidentes tengo que obtener los aportes para la semana y eshy actual
             aportes = self.data_matriz_aportes_claire.loc[self.tiempo % 52, cronicas_coincidentes] # hm3/h
 
-            # Calculo la media de los aportes para la semana y eshy actual
-            aportes_promedio = np.mean(aportes) # hm3/h
+            # # Calculo la media de los aportes para la semana y eshy actual
+            # aportes_promedio = np.mean(aportes) # hm3/h
 
-            rango_valido_inf = aportes_promedio - aportes_promedio * 0.05
-            rango_valido_sup = aportes_promedio + aportes_promedio * 0.05
+            # rango_valido_inf = aportes_promedio - aportes_promedio * 0.05
+            # rango_valido_sup = aportes_promedio + aportes_promedio * 0.05
 
-            # Me quedo con los aportes que estén en el promedio +/- 5% 
-            aportes_validos = aportes[(aportes>=rango_valido_inf) & (aportes<=rango_valido_sup)] # hm3/h
+            # # Me quedo con los aportes que estén en el promedio +/- 5% 
+            # aportes_validos = aportes[(aportes>=rango_valido_inf) & (aportes<=rango_valido_sup)] # hm3/h
 
-            # Si aportes_validos es vacio tomo como aporte valido el promedio de aportes
-            if aportes_validos.empty:
-                aporte_final = aportes_promedio * 168   # hm3/semana
-            else:
-            # Sorteo uniformemente uno de los validos
-                aporte_final = self.np_random.choice(aportes_validos) * 168 
+            # # Si aportes_validos es vacio tomo como aporte valido el promedio de aportes
+            # if aportes_validos.empty:
+            #     aporte_final = aportes_promedio * 168   # hm3/semana
+            # else:
+            # # Sorteo uniformemente uno de los validos
+            #     aporte_final = self.np_random.choice(aportes_validos) * 168 
             
+            aportes_validos = aportes
+            aporte_final = self.np_random.choice(aportes_validos) * 168 
+
             return aporte_final 
 
         # SOLO PARA EVALUAR CON LA HISTORIA HABIENDO ENTRENADO CON MARKOV 
