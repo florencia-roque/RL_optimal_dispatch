@@ -53,6 +53,7 @@ def build_sb3_eval_context(
     n_envs: int,
     mode_eval: str = "historico",
     seed = None,
+    multiple_seeds: bool = False
 ) -> EvalContext:
     """
     Para PPO/A2C:
@@ -72,7 +73,7 @@ def build_sb3_eval_context(
     tmp_env.close()
 
     fecha = timestamp()
-    mode_tag_str = mode_tag(deterministico, modo)
+    mode_tag_str = mode_tag(deterministico, modo, multiple_seeds=multiple_seeds)
 
     return EvalContext(
         fecha=fecha,

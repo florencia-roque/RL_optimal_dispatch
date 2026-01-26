@@ -15,7 +15,8 @@ import numpy as np
 
 # Fijar semilla para reproducibilidad
 seed = None
-eval_seed = 7
+eval_seed = 42
+eval_seed_array = [np.random.randint(0, 10000) for _ in range(20)]
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -23,7 +24,7 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument("--alg", choices=["ppo", "a2c", "ql"], required=True)
-    parser.add_argument("--mode", choices=["train", "train_eval", "eval", "tune"], required=True)
+    parser.add_argument("--mode", choices=["train", "train_eval", "eval", "eval_multiple_seeds", "tune"], required=True)
     
     parser.add_argument("--det", type=int, choices=[0, 1], default=0, help="1 para usar aportes determinísticos, 0 para estocásticos")
 
@@ -68,7 +69,7 @@ def main() -> None:
     # Instanciar agente
     # =========================
     if args.alg == "ppo":
-        agent = PPOAgent(n_envs=args.n_envs, deterministico=args.det, seed=seed)
+        agent = PPOAgent(n_envs=16, deterministico=args.det, seed=seed)
 
     elif args.alg == "a2c":
         agent = A2CAgent(
@@ -146,6 +147,41 @@ def main() -> None:
                 mode_eval=args.mode_eval,
                 eval_seed=eval_seed
             )
-
+            
+    # =========================
+    # Evaluación multiple semillas
+    # =========================
+    elif args.mode == "eval_multiple_seeds":
+        model_path, vecnorm_path = get_latest_model(args.alg)
+        if args.alg == "ppo":
+            agent.load(model_path, vecnorm_path, mode_eval=args.mode_eval, n_envs=args.n_envs, multiple_seeds=True)
+            agent.evaluate_multiple_seed(
+                n_eval_episodes=args.n_eval_episodes,
+                window_weeks=args.window_weeks,
+                stride_weeks=args.stride_weeks,
+                n_envs=args.n_envs,
+                mode_eval=args.mode_eval,
+                seeds=eval_seed_array
+            )
+            agent.close_env()
+        elif args.alg == "a2c":
+            agent.load(model_path, mode_eval=args.mode_eval)
+            agent.evaluate_multiple_seed(
+                n_eval_episodes=args.n_eval_episodes,
+                window_weeks=args.window_weeks,
+                stride_weeks=args.stride_weeks,
+                n_envs=args.n_envs,
+                mode_eval=args.mode_eval,
+                seeds=eval_seed_array
+            )
+        else: # ql
+            agent.load(model_path, mode_eval=args.mode_eval)
+            agent.evaluate_multiple_seed(
+                n_eval_episodes=args.n_eval_episodes,
+                num_pasos=args.num_pasos,
+                mode_eval=args.mode_eval,
+                seeds=eval_seed_array
+            )
+    
 if __name__ == "__main__":
     main()

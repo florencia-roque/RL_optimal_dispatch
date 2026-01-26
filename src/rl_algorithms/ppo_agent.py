@@ -1,12 +1,14 @@
 # src/rl_algorithms/ppo_agent.py
 
 from __future__ import annotations
+import pandas as pd
 import time
 from pathlib import Path
 from sb3_contrib import RecurrentPPO
 from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
 from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor, VecNormalize
 from stable_baselines3.common.logger import configure
+import torch
 
 from src.utils.paths import (
     timestamp,
@@ -28,7 +30,8 @@ class PPOAgent:
     """
     Clase para entrenar y evaluar PPO en el entorno Hydro-Thermal Continuo.
     """
-    def __init__(self, modo="ppo", n_envs=8, deterministico=0, seed=None):
+    def __init__(self, modo="ppo", n_envs=16, deterministico=0, seed=None):
+        print(f"Inicializando agente PPO con modo={modo}, n_envs={n_envs}, deterministico={deterministico}, seed={seed}")
         self.alg = modo
         self.n_envs = n_envs
         self.vec_env = None
@@ -82,6 +85,8 @@ class PPOAgent:
         n_steps = 137
         ent_coef = 0.0002918704130075
 
+        print(f"Hiperparámetros de entrenamiento PPO: learning_rate={learning_rate}, gamma={gamma}, n_steps={n_steps}, ent_coef={ent_coef}")
+        
         self.model = RecurrentPPO(
             MlpLstmPolicy,
             self.vec_env,
@@ -91,7 +96,7 @@ class PPOAgent:
             gamma=gamma,
             ent_coef=ent_coef,
             learning_rate=learning_rate,
-            device="auto",
+            device="cuda" if torch.cuda.is_available() else "cpu",
             seed=self.seed,
         )
 
@@ -118,13 +123,13 @@ class PPOAgent:
         dt = (time.perf_counter() - t0) / 60
         print(f"Entrenamiento completado en {dt:.2f} minutos")
 
-    def load(self, model_path: Path, path_vec_normalize: Path | None = None, mode_eval="historico", n_envs=8, eval_seed=None):
+    def load(self, model_path: Path, path_vec_normalize: Path | None = None, mode_eval="historico", n_envs=8, eval_seed=None, multiple_seeds=False):
         print(f"Cargando modelo PPO desde {model_path}...")
         self.model = load_sb3_model(RecurrentPPO, model_path)
         print("Modelo cargado.")
 
         # Construimos el entorno base correcto
-        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=eval_seed)
+        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=eval_seed, multiple_seeds=multiple_seeds)
         
         base_env = DummyVecEnv(self.ctx.env_fns)
 
@@ -149,7 +154,8 @@ class PPOAgent:
         stride_weeks=52,
         n_envs = 8,
         mode_eval="historico",
-        eval_seed=None
+        eval_seed=None,
+        multiple_seeds=False
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo PPO.")
@@ -159,7 +165,8 @@ class PPOAgent:
                 alg=self.alg, 
                 n_envs=n_envs, 
                 mode_eval=mode_eval, 
-                seed=eval_seed
+                seed=eval_seed,
+                multiple_seeds=multiple_seeds
             )
 
         print("Iniciando evaluación PPO...")
@@ -188,6 +195,63 @@ class PPOAgent:
 
         print(f"Recompensa total en evaluación PPO: {reward_total:.2f}")
         return df_avg, df_all
+    
+    def evaluate_multiple_seed(
+        self,
+        n_eval_episodes=114,
+        window_weeks=156,
+        stride_weeks=52,
+        n_envs = 8,
+        mode_eval="historico",
+        seeds=None
+    ): 
+        resultados = {}
+        if seeds is None: 
+            raise ValueError("Se debe proporcionar una lista de semillas para la evaluación múltiple.")
+
+        for seed in seeds:
+            print(f"\nEvaluando con semilla: {seed}")
+            df_avg, df_all = self.evaluate(
+                n_eval_episodes=n_eval_episodes,
+                window_weeks=window_weeks,
+                stride_weeks=stride_weeks,
+                n_envs=n_envs,
+                mode_eval=mode_eval,
+                eval_seed=seed,
+                multiple_seeds=True
+            )
+            resultados[seed] = (df_avg, df_all)
+
+        df_avg_mean = None
+        df_all_mean = None
+        for seed, (df_avg, df_all) in resultados.items():
+            if df_avg_mean is None:
+                df_avg_mean = df_avg.copy()
+            else:
+                df_avg_mean += df_avg
+
+            if df_all_mean is None:
+                df_all_mean = df_all.copy()
+            else:
+                df_all_mean += df_all 
+                
+        # Promediar los resultados
+        n_seeds = len(seeds)
+        df_avg_mean /= n_seeds
+        df_all_mean /= n_seeds
+        
+        reward_total, _, _ = save_eval_outputs(
+            df_avg_mean,
+            df_all_mean,
+            alg=self.alg,
+            fecha=self.ctx.fecha,
+            mode_tag_str=self.ctx.mode_tag_str,
+            estados_cols=["volumen", "hidrologia", "tiempo", "aportes", "vertimiento", "volumen_turbinado"],
+            n_eval_episodes=n_eval_episodes,
+        )
+            
+        print(f"\nRecompensa total promedio en evaluación múltiple PPO: {reward_total:.2f}")    
+        return df_avg_mean, df_all_mean
     
     def close_env(self):
         if self.vec_env is not None:

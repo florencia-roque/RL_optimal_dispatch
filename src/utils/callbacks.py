@@ -4,9 +4,16 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 import numpy as np
+import matplotlib
 import pandas as pd
 import matplotlib.pyplot as plt
 from stable_baselines3.common.callbacks import BaseCallback
+
+# Determinar si el backend actual es interactivo
+_INTERACTIVE_BACKENDS = {
+    "Qt5Agg", "QtAgg", "TkAgg", "WXAgg", "GTK3Agg", "MacOSX"
+}
+_IS_INTERACTIVE_BACKEND = matplotlib.get_backend() in _INTERACTIVE_BACKENDS
 
 # ============================================================
 # Base común
@@ -33,8 +40,11 @@ class _LivePlotBase:
         self.rewards_ep: list[float] = []
         self.moving_avg: list[float] = []
 
-        # Interactivo
-        plt.ion()
+        # Interactivo sólo si el backend lo permite
+        if _IS_INTERACTIVE_BACKEND:
+            plt.ion()
+        else:
+            plt.ioff()
 
         # Configuración global de estilo
         plt.rcParams.update({
@@ -107,6 +117,15 @@ class _LivePlotBase:
 
         plt.close(self.fig)
         plt.ioff()
+        if _IS_INTERACTIVE_BACKEND:
+            plt.show(block=False)
+        else:
+            plt.close(self.fig)
+
+# ============================================================
+# Callback para SB3 (PPO/A2C)
+# ============================================================
+
 class LivePlotCallback(BaseCallback, _LivePlotBase):
     """
     Para SB3: lee rewards por episodio desde infos -> info["episode"]["r"].
