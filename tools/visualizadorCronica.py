@@ -105,9 +105,9 @@ plt.tight_layout(rect=[0, 0, 0.98, 1])  # deja 2% libre a la derecha
 fig.subplots_adjust(right=0.89, bottom=0.28)
 
 # Guardado
-alg = "ql" # Cambiar según el algoritmo usado
-modo_eval = "Deterministico" # Historico o Markov o Deterministico
-final_nombre = "det"
+alg = "ppo" # Cambiar según el algoritmo usado
+modo_eval = "Historico" # Historico o Markov o Deterministico
+final_nombre = "est_promedio_hist"
 
 os.makedirs(f"results/figures/{alg}/chronicles/{modo_eval}", exist_ok=True)
 plt.savefig(f"results/figures/{alg}/chronicles/{modo_eval}/dispatch_evaluation_{final_nombre}.pdf", bbox_inches="tight")  # vectorial para el paper
@@ -134,6 +134,7 @@ if img.mode != 'RGB':
     background = Image.new("RGB", img.size, (255, 255, 255)) # Fondo blanco
     background.paste(img, mask=img.split()[3] if len(img.split()) > 3 else None) # Pegar encima
     img = background
+    
 # CORREGIR TAMAÑO (Reescalar a 6.5 pulgadas exactas si es necesario)
 target_width_inch = 6.5
 dpi = 600
