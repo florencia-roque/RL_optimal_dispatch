@@ -15,7 +15,7 @@ import numpy as np
 
 # Fijar semilla para reproducibilidad
 seed = None
-eval_seed = 7
+eval_seed = 42
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
