@@ -129,7 +129,7 @@ class PPOAgent:
         print("Modelo cargado.")
 
         # Construimos el entorno base correcto
-        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=eval_seed, multiple_seeds=multiple_seeds)
+        self.ctx = build_sb3_eval_context(alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, deterministico=self.deterministico, seed=eval_seed, multiple_seeds=multiple_seeds)
         
         base_env = DummyVecEnv(self.ctx.env_fns)
 
