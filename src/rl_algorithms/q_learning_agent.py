@@ -58,7 +58,7 @@ class QLearningAgent:
 
         modo_ent = inner.MODO
         fecha = timestamp()
-        mode_tag_str = mode_tag(self.deterministico, modo_ent)
+        mode_tag_str = mode_tag(self.deterministico, modo_ent, multiple_seeds=False)
 
         paths = training_paths(self.alg, fecha, mode_tag_str)
         qtable_path = paths["model_path"]
@@ -134,7 +134,7 @@ class QLearningAgent:
         self.env = make_eval_env("ql", modo=mode_eval, deterministico=self.deterministico, seed=self.seed)
         return self.env
 
-    def evaluate(self, n_eval_episodes=116, num_pasos=None, mode_eval="historico", eval_seed=None):
+    def evaluate(self, n_eval_episodes=114, num_pasos=None, mode_eval="historico", eval_seed=None, multiple_seeds=False):
         if self.env is None or self.Q is None:
             raise RuntimeError("Primero cargar o entrenar el agente Q-learning.")
 
@@ -165,7 +165,7 @@ class QLearningAgent:
                 print(f"[WARN] n_eval_episodes={n_eval_episodes} > max={max_eps}. Ajustando.")
                 n_eval_episodes = max_eps
 
-        hdr = build_eval_header_from_env(env=self.env, mode_eval=mode_eval)
+        hdr = build_eval_header_from_env(env=self.env, mode_eval=mode_eval, multiple_seeds=multiple_seeds)
 
         print("Iniciando evaluación Q-learning...")
 
@@ -216,3 +216,64 @@ class QLearningAgent:
 
         print(f"Recompensa total en evaluación Q-learning: {reward_total:.2f}")
         return df_avg, df_all
+    
+    def evaluate_multiple_seed(
+        self,
+        n_eval_episodes=114,
+        mode_eval="historico",
+        seeds=None
+    ): 
+        
+        resultados = {}
+        if seeds is None: 
+            raise ValueError("Se debe proporcionar una lista de semillas para la evaluación múltiple.")
+
+        for seed in seeds:
+            print(f"\nEvaluando con semilla: {seed}")
+            df_avg, df_all = self.evaluate(
+                n_eval_episodes=n_eval_episodes,
+                mode_eval=mode_eval,
+                eval_seed=seed,
+                multiple_seeds=True
+            )
+            resultados[seed] = (df_avg, df_all)
+
+        df_avg_mean = None
+        df_all_mean = None
+        for seed, (df_avg, df_all) in resultados.items():
+            if df_avg_mean is None:
+                df_avg_mean = df_avg.copy()
+            else:
+                df_avg_mean += df_avg
+
+            if df_all_mean is None:
+                df_all_mean = df_all.copy()
+            else:
+                df_all_mean += df_all 
+                
+        # Promediar los resultados
+        n_seeds = len(seeds)
+        df_avg_mean /= n_seeds
+        df_all_mean /= n_seeds
+
+        hdr = build_eval_header_from_env(env=self.env, mode_eval=mode_eval, multiple_seeds=True)
+
+        reward_total, _, _ = save_eval_outputs(
+            df_avg_mean,
+            df_all_mean,
+            alg=self.alg,
+            fecha=hdr.fecha,
+            mode_tag_str=hdr.mode_tag_str,
+            estados_cols=[
+                "volumen_discreto",
+                "hidrologia",
+                "tiempo",
+                "aportes",
+                "vertimiento",
+                "volumen_turbinado",
+            ],
+            n_eval_episodes=n_eval_episodes,
+        )
+            
+        print(f"\nRecompensa total promedio en evaluación múltiple Q-learning: {reward_total:.2f}")    
+        return df_avg_mean, df_all_mean

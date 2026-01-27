@@ -178,7 +178,6 @@ def main() -> None:
             agent.load(model_path, mode_eval=args.mode_eval)
             agent.evaluate_multiple_seed(
                 n_eval_episodes=args.n_eval_episodes,
-                num_pasos=args.num_pasos,
                 mode_eval=args.mode_eval,
                 seeds=eval_seed_array
             )
