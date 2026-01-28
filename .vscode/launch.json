@@ -46,7 +46,7 @@
             "id": "chooseMode",
             "type": "pickString",
             "description": "Modo de ejecución:",
-            "options": ["train", "train_eval", "eval", "eval_multiple_seeds"],
+            "options": ["train", "train_eval", "eval", "eval_multiple_seeds", "eval_multiple_seeds_posteval"],
             "default": "train"
         },
         {

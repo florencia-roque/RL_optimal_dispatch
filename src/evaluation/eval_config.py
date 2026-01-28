@@ -17,7 +17,7 @@ class EvalHeader:
     deterministico: int
     mode_eval: str
 
-def build_eval_header_from_env(*, env, mode_eval: str) -> EvalHeader:
+def build_eval_header_from_env(*, env, mode_eval: str, multiple_seeds: bool) -> EvalHeader:
     """
     Para agentes que tienen env: arma fecha + mode_tag_str.
     """
@@ -26,7 +26,7 @@ def build_eval_header_from_env(*, env, mode_eval: str) -> EvalHeader:
     modo = str(mode_eval).lower()
 
     fecha = timestamp()
-    mode_tag_str = mode_tag(deterministico, modo)
+    mode_tag_str = mode_tag(deterministico, modo, multiple_seeds=multiple_seeds)
 
     return EvalHeader(
         fecha=fecha,

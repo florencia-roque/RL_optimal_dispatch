@@ -159,9 +159,58 @@ class PPOAgent:
         if not hasattr(self, "ctx") or self.ctx is None:
             raise RuntimeError("El contexto de evaluación no está construido. Llamar a 'load' primero.")
 
+        # Si cambiamos de modo en la misma ejecución, regeneramos el contexto
+        if self.ctx.mode_eval != mode_eval:
+             self.ctx = build_sb3_eval_context(
+                alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=eval_seed
+            )
+
+        print(f"[INFO] Configurando evaluación PPO (Modo: {mode_eval})...")
+
+        # Construir el entorno FÍSICO nuevo (Correcto: Histórico o Markov según pedido)
+        # Usamos DummyVecEnv para evaluación determinística y secuencial
+        eval_vec_env = DummyVecEnv(self.ctx.env_fns)
+
+        # Aplicar NORMALIZACIÓN (Sincronizar con Training)
+        # Si el modelo fue entrenado con VecNormalize, el entorno de evaluación 
+        # debe normalizar las inputs usando las MISMAS estadísticas.
+        if self.vec_env is not None and isinstance(self.vec_env, VecNormalize):
+            # print("[DEBUG] Sincronizando estadísticas de normalización...")
+            norm_eval_env = VecNormalize(eval_vec_env, training=False, norm_reward=False, clip_obs=10.0)
+            
+            # COPIAR LAS ESTADÍSTICAS DEL ENTRENAMIENTO
+            norm_eval_env.obs_rms = self.vec_env.obs_rms
+            norm_eval_env.ret_rms = self.vec_env.ret_rms
+            
+            # Usamos este entorno envuelto
+            final_eval_env = norm_eval_env
+        else:
+            # Si no hubo normalización en train, usamos el env crudo
+            final_eval_env = eval_vec_env
+
         print("Iniciando evaluación PPO...")
         if self.deterministico == 0:
             print("Evaluando con modo:", mode_eval)
+
+        # # --- VERIFICACIÓN DE NORMALIZACIÓN ---
+        # if isinstance(final_eval_env, VecNormalize):
+        #     # Accedemos a la media de la primera variable (Volumen)
+        #     mean_loaded = self.vec_env.obs_rms.mean[0]
+        #     mean_eval = final_eval_env.obs_rms.mean[0]
+            
+        #     var_loaded = self.vec_env.obs_rms.var[0]
+        #     var_eval = final_eval_env.obs_rms.var[0]
+            
+        #     print(f"\n[DEBUG] Verificando estadísticas de Normalización:")
+        #     print(f"  > Media Volumen (Cargado): {mean_loaded:.4f} | (Usado en Eval): {mean_eval:.4f}")
+        #     print(f"  > Varianza Volumen (Cargado): {var_loaded:.4f} | (Usado en Eval): {var_eval:.4f}")
+            
+        #     if abs(mean_loaded - mean_eval) < 1e-6:
+        #         print("  > [OK] ¡Las estadísticas coinciden perfectamente!")
+        #     else:
+        #         print("  > [PELIGRO] Las estadísticas NO coinciden.")
+        #     print("-" * 40 + "\n")
+        # # -------------------------------------
 
         df_avg, df_all = evaluar_sb3_parallel_sliding(
             self.model,
@@ -169,8 +218,11 @@ class PPOAgent:
             window_weeks=window_weeks,
             stride_weeks=stride_weeks,
             deterministic=True,
-            vec_env=self.vec_env
+            vec_env=final_eval_env
         )
+
+        # Limpieza
+        final_eval_env.close()
 
         reward_total, _, _ = save_eval_outputs(
             df_avg,
