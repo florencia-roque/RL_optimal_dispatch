@@ -22,7 +22,7 @@ from src.utils.io import leer_archivo
 
 class HydroThermalEnvTab(gym.Env):
     T0 = 0
-    T_MAX = 155
+    T_MAX = 156
     N_HIDRO = 5
 
     P_CLAIRE_MAX = 1541 # MW

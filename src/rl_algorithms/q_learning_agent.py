@@ -159,7 +159,7 @@ class QLearningAgent:
         # Ajuste por histórico
         reset_con_start_week = (self.deterministico == 0 and mode_eval == "historico")
         if reset_con_start_week:
-            max_start = len(inner.datos_historicos) - (inner.T_MAX + 1)
+            max_start = len(inner.datos_historicos) - inner.T_MAX
             max_eps = (max_start // 52) + 1
             if n_eval_episodes > max_eps:
                 print(f"[WARN] n_eval_episodes={n_eval_episodes} > max={max_eps}. Ajustando.")

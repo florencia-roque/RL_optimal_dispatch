@@ -61,7 +61,7 @@ class PPOAgent:
         modo_ent = env0.MODO
 
         fecha = timestamp()
-        mode_tag_str = mode_tag(self.deterministico, modo_ent)
+        mode_tag_str = mode_tag(self.deterministico, modo_ent,multiple_seeds=False)
 
         paths = training_paths(self.alg, fecha, mode_tag_str)
         fig_path = paths["fig_path"]
