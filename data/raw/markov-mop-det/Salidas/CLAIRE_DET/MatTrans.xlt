@@ -1,0 +1,169 @@
+det Tue Jan 27 14:48:22 UYT 2026
+cantSeries 1
+cantVarEst  1
+cantVarEstOptim  1
+cantMaxPasos 52
+cantCron 3
+nombreDurPaso SEMANA
+cantEstadosCompuestos 1
+cantDatos 156
+Nombres-VA APORTE-CLAIRE-DET 
+Nombres-VE ESHY1 
+Nombres-VE-Optim ESHY1 
+Cant-Clases-VE 1 
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 1 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 2 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 3 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 4 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 5 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 6 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 7 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 8 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 9 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 10 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 11 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 12 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 13 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 14 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 15 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 16 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 17 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 18 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 19 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 20 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 21 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 22 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 23 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 24 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 25 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 26 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 27 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 28 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 29 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 30 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 31 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 32 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 33 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 34 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 35 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 36 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 37 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 38 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 39 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 40 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 41 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 42 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 43 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 44 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 45 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 46 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 47 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 48 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 49 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 50 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 51 E.comp.fin=0 
+E.comp.ini= 0 1.0
+PROBABILIDADES-DE-TRANSICION
+paso-ini= 52 E.comp.fin=0 
+E.comp.ini= 0 1.0
