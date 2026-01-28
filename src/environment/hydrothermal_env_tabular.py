@@ -116,7 +116,7 @@ class HydroThermalEnvTab(gym.Env):
         
         # Validación de rango para histórico
         if self.DETERMINISTICO == 0 and self.MODO == "historico":
-            max_start = len(self.datos_historicos) - (self.T_MAX + 1)
+            max_start = len(self.datos_historicos) - self.T_MAX
             if not (0 <= self.indice_inicial_episodio <= max_start):
                 raise ValueError(
                     f"start_week={self.indice_inicial_episodio} fuera de rango. "

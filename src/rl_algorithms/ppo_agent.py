@@ -151,7 +151,8 @@ class PPOAgent:
         n_eval_episodes=114,
         window_weeks=156,
         stride_weeks=52,
-        mode_eval="historico"
+        mode_eval="historico",
+        eval_seed=None
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo PPO.")
@@ -162,7 +163,7 @@ class PPOAgent:
         # Si cambiamos de modo en la misma ejecución, regeneramos el contexto
         if self.ctx.mode_eval != mode_eval:
              self.ctx = build_sb3_eval_context(
-                alg=self.alg, n_envs=n_envs, mode_eval=mode_eval, seed=eval_seed
+                alg=self.alg, n_envs=self.n_envs, mode_eval=mode_eval, seed=eval_seed
             )
 
         print(f"[INFO] Configurando evaluación PPO (Modo: {mode_eval})...")

@@ -157,7 +157,7 @@ class HydroThermalEnvCont(gym.Env):
     def _siguiente_hidrologia(self):
         self.hidrologia_anterior = self.hidrologia
         if self.DETERMINISTICO == 1:
-            return int(self.aportes_deterministicos.iloc[self.tiempo + 1, 1])
+            return int(self.aportes_deterministicos.iloc[self.tiempo, 1])
         elif self.MODO == "markov":
             # retorna el estado hidrológico siguiente 0,1,2,3,4
             clases = np.arange(self.matrices_hidrologicas[self.tiempo % 52].shape[0])
