@@ -28,7 +28,7 @@ def timestamp() -> str:
     """
     return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-def mode_tag(deterministico: int, modo: str, multiple_seeds: bool) -> str:
+def mode_tag(deterministico: int, modo: str, multiple_seeds: bool = None) -> str:
     """
     Construye el tag de modo para nombres de archivos:
     - est_<modo>  si DETERMINISTICO == 0

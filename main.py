@@ -12,12 +12,10 @@ from src.utils.paths import get_latest_model
 from src.utils.hparam_tuning import HyperparameterTuner
 from src.utils.average_seeds import AverageSeeds
 
-import numpy as np
-
 # Fijar semilla para reproducibilidad
 seed = None
-eval_seed = 42
-eval_seed_array = [np.random.randint(0, 10000) for _ in range(20)]
+EVAL_SEED = 42
+EVAL_SEED_ARRAY = [7684, 4355, 1807, 4667, 1210, 8187, 5907, 3030, 1919, 3975, 5122, 3106, 4547, 2036, 3781, 2418, 8510, 3185, 8711, 7123]
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -63,7 +61,7 @@ def main() -> None:
         print(f"Iniciando Hyperparameter Tuning para {args.alg} con {args.n_trials} pruebas...")
         tuner = HyperparameterTuner(alg=args.alg, deterministico=args.det, seed=seed)
         tuner.tune(n_trials=args.n_trials)
-        print(f"Tuning completado.")
+        print("Tuning completado.")
         return
     
     # =========================
@@ -99,15 +97,14 @@ def main() -> None:
         if args.alg in ("ppo", "a2c"):
             model_path, vecnorm_path = get_latest_model(args.alg)
             if args.alg == "ppo":
-                agent.load(model_path, vecnorm_path, mode_eval=args.mode_eval, n_envs=args.n_envs, eval_seed=eval_seed)
+                agent.load(model_path, vecnorm_path, mode_eval=args.mode_eval, n_envs=args.n_envs, eval_seed=EVAL_SEED)
             elif args.alg == "a2c":
-                agent.load(model_path, mode_eval=args.mode_eval,eval_seed=eval_seed)
+                agent.load(model_path, mode_eval=args.mode_eval,eval_seed=EVAL_SEED)
             agent.evaluate(
                 n_eval_episodes=args.n_eval_episodes,
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
-                mode_eval=args.mode_eval,
-                eval_seed=eval_seed
+                mode_eval=args.mode_eval
             )
 
         elif args.alg == "ql":
@@ -115,30 +112,29 @@ def main() -> None:
                 n_eval_episodes=args.n_eval_episodes,
                 num_pasos=args.num_pasos,
                 mode_eval=args.mode_eval,
-                eval_seed=eval_seed
+                eval_seed=EVAL_SEED
             )
     
     elif args.mode == "eval":
         model_path, vecnorm_path = get_latest_model(args.alg)
         if args.alg == "ppo":
-            agent.load(model_path, vecnorm_path, mode_eval=args.mode_eval, n_envs=args.n_envs, eval_seed=eval_seed)
+            agent.load(model_path, vecnorm_path, mode_eval=args.mode_eval, n_envs=args.n_envs, eval_seed=EVAL_SEED)
             agent.evaluate(
                 n_eval_episodes=args.n_eval_episodes,
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
-                mode_eval=args.mode_eval,
-                eval_seed=eval_seed
+                mode_eval=args.mode_eval
             )
             agent.close_env()
         elif args.alg == "a2c":
-            agent.load(model_path, mode_eval=args.mode_eval, eval_seed=eval_seed)
+            agent.load(model_path, mode_eval=args.mode_eval, eval_seed=EVAL_SEED)
             agent.evaluate(
                 n_eval_episodes=args.n_eval_episodes,
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
                 n_envs=args.n_envs,
                 mode_eval=args.mode_eval,
-                eval_seed=eval_seed
+                eval_seed=EVAL_SEED
             )
         else: # ql
             agent.load(model_path, mode_eval=args.mode_eval)
@@ -146,7 +142,7 @@ def main() -> None:
                 n_eval_episodes=args.n_eval_episodes,
                 num_pasos=args.num_pasos,
                 mode_eval=args.mode_eval,
-                eval_seed=eval_seed
+                eval_seed=EVAL_SEED
             )
             
     # =========================
@@ -155,14 +151,13 @@ def main() -> None:
     elif args.mode == "eval_multiple_seeds":
         model_path, vecnorm_path = get_latest_model(args.alg)
         if args.alg == "ppo":
-            agent.load(model_path, vecnorm_path, mode_eval=args.mode_eval, n_envs=args.n_envs, multiple_seeds=True)
             agent.evaluate_multiple_seed(
                 n_eval_episodes=args.n_eval_episodes,
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
                 n_envs=args.n_envs,
                 mode_eval=args.mode_eval,
-                seeds=eval_seed_array
+                seeds=EVAL_SEED_ARRAY
             )
             agent.close_env()
         elif args.alg == "a2c":
@@ -173,7 +168,7 @@ def main() -> None:
                 stride_weeks=args.stride_weeks,
                 n_envs=args.n_envs,
                 mode_eval=args.mode_eval,
-                seeds=eval_seed_array
+                seeds=EVAL_SEED_ARRAY
             )
             
         else: # ql
@@ -181,7 +176,7 @@ def main() -> None:
             agent.evaluate_multiple_seed(
                 n_eval_episodes=args.n_eval_episodes,
                 mode_eval=args.mode_eval,
-                seeds=eval_seed_array
+                seeds=EVAL_SEED_ARRAY
             )
         
     elif args.mode == "eval_multiple_seeds_posteval":
