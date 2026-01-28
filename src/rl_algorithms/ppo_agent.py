@@ -1,7 +1,6 @@
 # src/rl_algorithms/ppo_agent.py
 
 from __future__ import annotations
-import pandas as pd
 import time
 from pathlib import Path
 from sb3_contrib import RecurrentPPO
@@ -24,6 +23,7 @@ from src.environment.env_factory import make_train_env
 from src.evaluation.eval_outputs import save_eval_outputs
 from src.evaluation.eval_config import build_sb3_eval_context
 from src.utils.callbacks import LivePlotCallback
+from src.utils.paths import get_latest_model
 from stable_baselines3.common.callbacks import CallbackList # Importar para combinar callbacks
 
 class PPOAgent:
@@ -124,7 +124,7 @@ class PPOAgent:
         print(f"Entrenamiento completado en {dt:.2f} minutos")
 
     def load(self, model_path: Path, path_vec_normalize: Path | None = None, mode_eval="historico", n_envs=8, eval_seed=None, multiple_seeds=False):
-        print(f"Cargando modelo PPO desde {model_path}...")
+        print(f"Cargando modelo PPO desde {model_path.name}")
         self.model = load_sb3_model(RecurrentPPO, model_path)
         print("Modelo cargado.")
 
@@ -135,15 +135,14 @@ class PPOAgent:
 
         # Aplicamos la normalización sobre ese entorno base
         if path_vec_normalize:
-            print(f"Cargando estadísticas de normalización desde {path_vec_normalize}")
+            print(f"Cargando estadísticas de normalización desde {path_vec_normalize.name}")
             self.vec_env = VecNormalize.load(path_vec_normalize, base_env)
             
             # Configuraciones críticas para evaluación
             self.vec_env.training = False 
             self.vec_env.norm_reward = False
         else:
-            print("AVISO: No se proporcionó VecNormalize. Usando entorno base sin normalizar.")
-            self.vec_env = base_env
+            raise ValueError("Se requiere path_vec_normalize para cargar VecNormalize en PPO.")
 
         print("Agente cargado y entorno de evaluación listo.")
 
@@ -152,22 +151,13 @@ class PPOAgent:
         n_eval_episodes=114,
         window_weeks=156,
         stride_weeks=52,
-        n_envs = 8,
-        mode_eval="historico",
-        eval_seed=None,
-        multiple_seeds=False
+        mode_eval="historico"
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo PPO.")
 
         if not hasattr(self, "ctx") or self.ctx is None:
-            self.ctx = build_sb3_eval_context(
-                alg=self.alg, 
-                n_envs=n_envs, 
-                mode_eval=mode_eval, 
-                seed=eval_seed,
-                multiple_seeds=multiple_seeds
-            )
+            raise RuntimeError("El contexto de evaluación no está construido. Llamar a 'load' primero.")
 
         print("Iniciando evaluación PPO...")
         if self.deterministico == 0:
@@ -175,7 +165,6 @@ class PPOAgent:
 
         df_avg, df_all = evaluar_sb3_parallel_sliding(
             self.model,
-            env_fns=self.ctx.env_fns,
             n_eval_episodes=n_eval_episodes,
             window_weeks=window_weeks,
             stride_weeks=stride_weeks,
@@ -211,14 +200,13 @@ class PPOAgent:
 
         for seed in seeds:
             print(f"\nEvaluando con semilla: {seed}")
+            model_path, vecnorm_path = get_latest_model(self.alg)
+            self.load(model_path, vecnorm_path, mode_eval=mode_eval, n_envs=n_envs, eval_seed=seed, multiple_seeds=True)
             df_avg, df_all = self.evaluate(
                 n_eval_episodes=n_eval_episodes,
                 window_weeks=window_weeks,
                 stride_weeks=stride_weeks,
-                n_envs=n_envs,
-                mode_eval=mode_eval,
-                eval_seed=seed,
-                multiple_seeds=True
+                mode_eval=mode_eval
             )
             resultados[seed] = (df_avg, df_all)
 

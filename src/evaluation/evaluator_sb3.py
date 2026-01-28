@@ -3,22 +3,30 @@
 from __future__ import annotations
 import numpy as np
 import pandas as pd
-from stable_baselines3.common.vec_env import DummyVecEnv
+
+def _try_normalize_obs(vec_env, obs):
+    """
+    Intenta normalizar una observación manual si el entorno es VecNormalize.
+    Maneja el caso de wrappers anidados buscando el método 'normalize_obs'.
+    """
+    # Si el entorno tiene el método normalize_obs (es VecNormalize o hereda de él)
+    if hasattr(vec_env, "normalize_obs"):
+        try:
+            return vec_env.normalize_obs(obs)
+        except Exception:
+            # En caso de incompatibilidad de formas (ej. batch vs single), retornamos original
+            # pero generalmente VecNormalize maneja broadcasting de numpy correctamente.
+            return obs
+    return obs
 
 def evaluar_sb3_parallel_sliding(
     model,
-    env_fns,
     n_eval_episodes: int,
     window_weeks: int = 156,
     stride_weeks: int = 52,
     deterministic: bool = True,
     vec_env = None,
 ):
-    close_vec_env = False
-    if vec_env is None:
-        print("Creando entorno vectorizado para evaluación sin normalización...")
-        close_vec_env = True
-        vec_env = DummyVecEnv(env_fns)
     n_envs = vec_env.num_envs
 
     next_episode_id = 0
@@ -39,12 +47,20 @@ def evaluar_sb3_parallel_sliding(
     for i in range(n_envs):
         if next_episode_id < n_eval_episodes:
             start_week = next_episode_id * stride_weeks
+            # Obtenemos obs CRUDA
             obs_i, _info = vec_env.env_method("reset", indices=i, options={"start_week": start_week})[0]
+            
+            # CORRECCION CRITICA: normalizar manualmente
+            obs_i = _try_normalize_obs(vec_env, obs_i)
+            
             active_episode_id[i] = next_episode_id
             next_episode_id += 1
             steps_left[i] = window_weeks
         else:
             obs_i, _info = vec_env.env_method("reset", indices=i)[0]
+            # También normalizar aquí por consistencia
+            obs_i = _try_normalize_obs(vec_env, obs_i)
+            
             active_episode_id[i] = -1
             steps_left[i] = window_weeks
 
@@ -65,6 +81,7 @@ def evaluar_sb3_parallel_sliding(
             action, _ = model.predict(obs, deterministic=deterministic)
 
         obs2, rewards, dones, infos = vec_env.step(action)
+        # NOTA: obs2 ya viene normalizado porque sale de step(), no necesitamos tocarlo.
 
         rewards_np = np.asarray(rewards).reshape(-1)
         dones_np = np.asarray(dones).reshape(-1)
@@ -117,13 +134,21 @@ def evaluar_sb3_parallel_sliding(
 
             if next_episode_id < n_eval_episodes:
                 start_week = next_episode_id * stride_weeks
+                # Reset manual -> Obs CRUDA
                 obs_i, _info = vec_env.env_method("reset", indices=i, options={"start_week": start_week})[0]
+                
+                # CORRECCION CRITICA: normalizar manualmente
+                obs_i = _try_normalize_obs(vec_env, obs_i)
+                
                 active_episode_id[i] = next_episode_id
                 next_episode_id += 1
                 steps_left[i] = window_weeks
             else:
                 # Lo dejo inactivo
                 obs_i, _info = vec_env.env_method("reset", indices=i)[0]
+                # También normalizar aquí por consistencia
+                obs_i = _try_normalize_obs(vec_env, obs_i)
+                
                 active_episode_id[i] = -1
                 steps_left[i] = window_weeks
 
@@ -142,9 +167,6 @@ def evaluar_sb3_parallel_sliding(
     else:
         df_avg = df_all.copy()
 
-    if close_vec_env:
-        vec_env.close()
-        vec_env = None
     return df_avg, df_all
 
 def _stack_obs(obs_list):
