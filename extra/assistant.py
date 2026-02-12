@@ -1,4 +1,4 @@
-# tools/extra/assistant.py
+# extra/assistant.py
 """
 Interfaz interactiva para ejecutar PPO, A2C o Q-learning.
 Permite entrenar o evaluar modelos guardados.

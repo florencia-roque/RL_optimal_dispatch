@@ -1,7 +1,6 @@
-# tools/visualizadorCronica.py
+# tools/plot_chronicle.py
 
 import os
-from matplotlib import ticker
 import pandas as pd
 import matplotlib.pyplot as plt
 from tkinter import Image, Tk, filedialog

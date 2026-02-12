@@ -1,4 +1,4 @@
-# compute_metrics.py
+# extra/compute_metrics.py
 """
 Script para cargar un modelo entrenado, evaluarlo
 y calcular todas las métricas del experimento.

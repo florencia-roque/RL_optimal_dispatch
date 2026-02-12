@@ -1,208 +1,438 @@
-# Implementación presentada en el paper "A Q-learning approach for long-term hydrothermal dispatch"
+# RL_optimal_dispatch
 
-Este repositorio contiene el código, datos y resultados correspondientes al proyecto asociado al paper **"A Q-learning approach for long-term hydrothermal dispatch"**.  
+Reinforcement Learning framework for **long-term hydrothermal dispatch optimization**.  
+
+It provides a reproducible pipeline to train and evaluate reinforcement learning (RL) agents for long-term hydrothermal dispatch problems under stochastic (Markov) hydrology. It also gives the possibility to evaluate under historical hydrological and deterministic inflows. 
 
 ---
 
+## Overview
 
-## Configuración y Ejecución
+The project implements and compares different RL algorithms (Q-learning, PPO, A2C) on a hydrothermal dispatch environment that models reservoir dynamics, thermal generation costs, renewable generation and demand uncertainty.
 
-1. **Clonar el repositorio:**
+The codebase is organized to clearly separate:
+- environment definition
+- RL algorithms
+- preprocessing of hydrological data
+- evaluation and visualization
+- experiment configuration and utilities
+
+---
+
+## Requirements
+
+- Python **3.10** or **3.11**
+- pip
+- Git (optional)
+
+> Python >= 3.12 may cause incompatibilities with Stable-Baselines3.
+
+---
+
+## Obtaining the project
+**If git is used**, the following commands can prepare the workspace.
+
   ```bash
    git clone https://github.com/florencia-roque/RL_optimal_dispatch.git
 
    cd RL_optimal_dispatch
   ```
 
+## Installation
 
+All commands must be executed from the **project root directory** (where `main.py` is located).
 
-2. **Configuración del Entorno Virtual (opcional pero recomendado)**
-Se recomienda el uso de un entorno virtual para evitar conflictos de dependencias. 
+### Windows (PowerShell)
 
-Es un espacio aislado donde se pueden instalar paquetes y dependencias sin afectar la instalación global de Python ni otros proyectos.
+```bash
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+```bash
+python -m venv .venv
+```
+```bash
+.\.venv\Scripts\activate
+```
+```bash
+pip install -r requirements.txt
+```
+### Linux / macOS
 
-Los siguientes comandos ejecutarlos en una consola dentro de VS Code.
+```bash
+python3 -m venv .venv
+```
+```bash
+source .venv/bin/activate
+```
+```bash
+pip install -r requirements.txt
+```
 
-Para que permita la creacion de un entorno virtual, ejecutar primero:
-  ```bash
-  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-  ```
+If activated, the environment name will appear before the path, like this: 
+```bash
+(venv) path/to/project.
+```
 
-A continuación ejecutar:
-
-  ```bash
-  python -m venv .venv
-  ```
-
-Aparecerá una ventana que pregunta si se desea seleccionar el entorno virtual creado para el espacio de trabajo actual.
-
-![select_env](docs/select_env.png)
-
-Clickeamos en Yes.
-
-Y por último hay que ejecutar:
+When need to run the code and the environment is not activated, the following command needs to be executed:
 
   ```bash
   .\.venv\Scripts\activate
   ```
-En la terminal se indica que esta activado el entorno con el texto: "(.venv)" antes de la ubicacion del proyecto.
 
-3. **Instalar dependencias:**
-Las dependencias se encuentran detalladas en el archivo requirements.txt
+## Entry point
+```bash
+main.py
+```
+Main entry point of the project.
 
-Se instalarán desde el archivo mencionado usando el siguiente comando:
-  ```bash
-  pip install -r requirements.txt
-   ```    
-Verificar que se llame al comando en una terminal con el entorno activado (.venv)
+This script is responsible for:
+* parsing command-line arguments
+* selecting the RL algorithm
+* creating the appropriate environment
+* launching training and/or evaluation
+* saving trained models and evaluation outputs
 
+All experiments (training, evaluation, tuning) are executed through this file.
 
-4. **Dos maneras para ejecutar**
+## Project structure
+RL_optimal_dispatch/
 
-* Ejecutar con VS Code (recomendado):
-  * Abre el proyecto en VS Code.
-  * Presiona F5 para debug o Ctrl+F5 para Run sin debug.
-  * Selecciona el algoritmo y los demas parámetros desde el menú que aparece en la parte superior.
+│── main.py
 
-* Ejecutar desde Terminal: 
+│── requirements.txt
 
- Si no usa VS Code, puede ejecutar con los siguientes comandos desde la raíz del proyecto **(tener en cuenta que los comandos de configuración de entorno virtual fueron dados para VS Code, sin embargo puede utilizar la herramienta de su comodidad para ese fin)**.
+│── README.md
 
-*Entrenamiento:*  
+├── data/
+
+├── src/
+
+├── results/
+
+└── tools/
+
+## Dependencies
+```bash
+requirements.txt
+```
+
+Lists all Python dependencies required to run the project, including:
+
+* numerical libraries (NumPy, pandas)
+* plotting libraries (matplotlib)
+* Gymnasium
+* Stable-Baselines3
+* auxiliary scientific and utility packages
+
+## Data
+```bash
+data/raw/
+```
+Contains raw input datasets used by the project.
+These files are not directly consumed by the environments and may require preprocessing.
+
+* Historical hydrological inflows
+
+* Markov-chain related input files
+
+* Demand and renewable generation data
+
+* Original spreadsheets from external models (e.g. MOP)
+
+*The file /data/raw/claire/datosProcHistorico.xlt is used to obtain the sum of all water reservoirs, that models Claire.*
+
+```bash
+data/processed/
+```
+Contains processed datasets generated from data/raw/ and directly used by the environments.
+
+Key files:
+
+* aporte_claire.csv - processed inflow series for the aggregated reservoir
+* hidrologia_claire.csv - hydrological state classification
+* matrices_markov_claire.csv - Markov transition probability matrices
+
+## Results
+
+```bash
+results/evaluations/
+```
+Stores RL models evaluations and checkpoints, organized by algorithm and experiment. In each folder of evaluation there are multiple csv files, one for each eval episode and there is another folder that contains the mean of all of these evaluations.
+
+```bash
+results/figures/
+```
+Stores figures generated during evaluation and analysis (training trajectories, csv with training data, chronicles dispatch evaluation).
+
+```bash
+results/logs/
+```
+Stores logs of the ppo algorithm.
+
+```bash
+results/models/
+```
+Stores trained RL models and checkpoints, organized by algorithm and experiment.
+
+```bash
+results/tuning/
+```
+Stores csv files containing the results of the different trials made with Optuna tuning.
+## Execution
+
+* VS Code execution (recommmended):
+  * Open the project in VS Code.
+  * Press F5 button to debug or Ctr+F5 to run without debug.
+  * Select the algorithm and the other parameters from the menu on the top of the window.
+
+* Command line execution:
+  * If VS Code is not available for this purpose, the following commands can be executed in the root of the project.
+
+*Training:*  
 
  ```bash
-python -m main --alg ql --mode train --total-episodes 3000
+python -m main --alg ql --mode train --total-episodes 3000 --mode-eval historico
 ```   
-*Evaluación:*  
+*Evaluation:*  
 
  ```bash
-python -m main --alg ql --mode eval --mode-eval historico
+python -m main --alg ql --mode eval --total-episodes 3000 --mode-eval historico
 ``` 
 
-*Entrenamiento y evaluación:*
+*Training and Evaluation:*
  ```bash
 python -m main --alg ql --mode train_eval --total-episodes 3000 --mode-eval historico
-```   
+```      
 
-Convenciones actuales del proyecto
----------------------------------
-- Entrenamiento: siempre MODO='markov'.
-- Evaluación:
-    * si el env es determinístico (DETERMINISTICO==1): se evalúa en la misma tira
-      (no corresponde pedir modo por consola).
-    * si el env es estocástico (DETERMINISTICO==0): se puede evaluar en 'markov'
-      o 'historico'.
+*Evaluation Multiple Seeds:*
+```bash
+python -m main --alg ql --mode eval_multiple_seeds --total-episodes 3000 --mode-eval historico
+```
 
-Wrappers del entorno.
----------------------------------
-Regla práctica:
-- Todo lo que sea una transformación *del entorno Gym* (obs/action/reward) va en src/environment/wrappers.py.
-- Todo lo que sea utilitario tabular (encode/decode bins, etc.) va en
-  src/environment/utils_tabular.py.
+*Evaluation Multiple Seeds Posteval:*
+```bash
+python -m main --alg ql --mode eval_multiple_seeds_posteval --total-episodes 3000 --mode-eval historico
+```
 
+## Source code (src/)
+### src/environment/
 
+Defines Gymnasium-compatible environments and environment-related utilities.
 
-Estructura del repositorio.
----------------------------------
+```bash
+env_factory.py
+```
 
-Listado del contenido del repositorio con una breve explicación de cada ítem.
+Factory module that builds and returns the correct environment instance depending on:
 
-.github/CODEOWNERS<br>
-Define quién puede aprobar pull requests, archivo que usa github/CODEOWNERS
-***
+* RL algorithm
+* tabular vs continuous formulation
+* deterministic vs stochastic setting
 
-.venv<br>
-Corresponde al entorno virtual de Python del proyecto.  
-Contiene una instalación aislada de Python junto con todas las dependencias necesarias para ejecutar el proyecto, sin afectar el entorno global del sistema.
-***
+```bash
+hydrothermal_env_tabular.py
+```
 
-.vscode<br>
-Contiene archivos de configuración específicos del proyecto para Visual Studio Code.  
-Permite mantener una configuración consistente del entorno de desarrollo entre distintos desarrolladores y máquinas.
-***
+Tabular hydrothermal environment with discretized state and action spaces. *Used by Q-learning.*
 
-data/processed/aporte_claire.csv<br>
-data/processed/hidrologia_claire.csv<br>
-data/processed/matrices_markov_claire.csv<br>
-Datos de entrada para modelar la hidrologia. Se parte de datos historicos, se clasifican en clases y se construyen matrices de transicion entre clases. 
-***
+```bash
+hydrothermal_env_continuous.py
+```
 
+Continuous or SB3-compatible environment *used by PPO and A2C agents*.
 
-data/raw/claire/datosProcHistorico.xlt<br>
-data/raw/markov/Entradas/<br>
-data/raw/markov/Salidas/<br>
-data/raw/markov/aporte_historico_claire.xlsx<br>
-data/raw/markov/Entradas/<br>
-data/raw/mop<br>
-Datos de entrada deterministicos
-***
+```bash
+wrappers.py
+```
 
-docs/select_env.png<br>
-Imagenes del proyecto
-***
+Gym wrappers that modify observations, actions or rewards without altering the core environment logic.
 
+```bash
+utils_tabular.py
+```
 
-results/figures<br>
-results/models<br>
-Ubicacion donde se alojan los resultados del proyecto
-***
+Helper functions for tabular environments, including:
 
-src/enviroment<br>
-Codigo destinado a preparar los diferentes entornos dependiendo del algoritmo usado 
-***
+* discretization of continuous variables
+* encoding and decoding of states and actions
+* finding the optimal policy
 
-src/evaluation<br>
-Guarda los outputs de evaluación:
-    - trayectorias (df_avg)
-    - energías, estados, resultados_agente, costos
-    - escenarios individuales 
-***
+#### Development rule for wrappers vs utils:
 
-src/preprocessing<br>
-Codigo usado para preparar datos usados en la hidrologia del embalse Claire
-***
-
-src/rl_algorithms<br>
-Clases usadas para entrenar y evaluar los 3 algoritmos usados en el proyecto
-***
-
-src/utils<br>
-
-***
-
-tools/extra<br>
-Actualmente en desuso esos archivos (26/12/2025). De momento se guardan para eventualmente reciclar código.
-***
+* Any transformation of the Gym environment (observation/action/reward) goes in src/environment/wrappers.py.
+* Any utility specific to the tabular approach (bin encoding/decoding, etc.) goes in src/environment/utils_tabular.py.
 
 
-tools/visualizadorCronica.py<br>
-tools/visualizar_tunning.py<br>
-Herramientas para visualizar datos generados en el proyecto
-***
+### src/rl_algorithms/
+Implements the reinforcement learning agents.
 
+```bash
+q_learning_agent.py
+``` 
 
-.gitignore<br>
-Configuracion que permite excluir archivos del repositorio
-***
+Complete implementation of tabular Q-learning:
 
+* training loop
+* epsilon-greedy exploration
+* Q-table updates
+* model saving and loading
 
-main.py<br>
-Archivo principal que da inicio a la aplicación
-***
+```bash
+ppo_agent.py
+```
 
+PPO agent wrapper built on top of Stable-Baselines3.
 
-requirements.txt<br>
-Listado de librerias que usa el proyecto
+```bash
+a2c_agent.py
+```
 
+A2C agent wrapper built on top of Stable-Baselines3.
 
+### src/evaluation/
+Handles evaluation, post-processing and result storage.
 
----
+```bash
+evaluator_sb3.py
+```
 
-## Autores
+Evaluation pipeline for SB3-based agents, including rollout execution and trajectory collection.
 
-- Florencia Roque 
-- Matías Rama  
-- Ignacio Salas 
-- Mónica Carle
-- Magdalena Irurtia
-- Rodrigo Porteiro
+```bash
+eval_config.py
+```
+
+Centralized configuration for evaluation parameters (number of episodes, scenarios, seeds).
+
+```bash
+eval_outputs.py
+```
+
+Utilities for saving evaluation results, including dataframes, summaries and serialized outputs.
+
+### src/preprocessing/
+Hydrological data preprocessing.
+
+```bash
+claire_inflows.py
+```
+
+Processes historical inflows and constructs the datasets required for the Markov hydrology representation.
+
+### src/utils/
+General-purpose utilities shared across the project.
+
+```bash
+config.py
+```
+
+Global configuration file containing constants and base paths.
+
+```bash
+paths.py
+```
+
+Helper functions to manage filesystem paths and locate saved models.
+
+```bash
+callbacks.py
+```
+
+Training callbacks (logging, progress tracking, visualization).
+
+```bash
+metrics.py
+```
+
+Metric definitions and helper functions for performance evaluation.
+
+```bash
+io.py
+```
+
+Input/output utilities for reading and writing experiment data.
+
+```bash
+hparam_tuning.py
+```
+
+Hyperparameter tuning utilities.
+
+```bash
+average_seeds.py
+```
+
+Runs multiple experiments with different random seeds and aggregates results.
+
+## Tools
+### tools/
+Standalone scripts mainly used for visualization and analysis.
+
+```bash
+plot_chronicle.py
+```
+
+Visualization of historical trajectories and scenarios.
+
+```bash
+plot_tuning.py
+```
+
+Visualization of hyperparameter tuning results.
+
+## extra
+Deprecated or experimental scripts kept for reference.
+
+## Repository configuration
+
+```bash
+.github/CODEOWNERS
+```
+
+Defines who is allowed to review and approve pull requests.
+This file follows the standard GitHub CODEOWNERS mechanism and is used to automatically request reviews from designated maintainers when relevant parts of the repository are modified.
+
+## Project conventions
+
+The following conventions are currently adopted across experiments to ensure consistency:
+
+**Training**
+
+Training is always performed using MODO='markov'.
+
+**Evaluation**
+
+*If the environment is deterministic (DETERMINISTICO == 1):*
+
+* Evaluation is performed on the same deterministic inflow trajectory.
+* No evaluation mode needs to be specified via command line.
+
+*If the environment is stochastic (DETERMINISTICO == 0):*
+
+Evaluation can be performed either in:
+* markov mode (in-sample evaluation), or
+* historico mode (out-of-sample evaluation using historical chronicles).
+
+## Reproducibility
+
+* Trained models are saved under results/models/.
+* Results are reproducible given identical: seed, dataset, trained model.
+
+## Versioning notes
+The following files and folders should not be committed:
+
+* .venv/
+* \_\_pycache\_\_/
+* large results/ folders
+* .git/ when sharing the project as a ZIP archive
+
+## License and usage
+This project is intended for academic and research purposes only.
+
+## Authors
+* Florencia Roque
+* Matías Rama
+* Ignacio Salas
+* Mónica Carle
+* Magdalena Irurtia
+* Rodrigo Porteiro

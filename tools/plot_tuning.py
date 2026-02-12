@@ -1,4 +1,4 @@
-# tools/visualizar_tuning.py
+# tools/plot_tuning.py
 
 import pandas as pd
 import matplotlib.pyplot as plt

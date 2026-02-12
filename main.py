@@ -14,8 +14,9 @@ from src.utils.average_seeds import AverageSeeds
 
 # Fijar semilla para reproducibilidad
 seed = None
-EVAL_SEED = 42
-EVAL_SEED_ARRAY = [7684, 4355, 1807, 4667, 1210, 8187, 5907, 3030, 1919, 3975, 5122, 3106, 4547, 2036, 3781, 2418, 8510, 3185, 8711, 7123]
+EVAL_SEED = 7123
+EVAL_SEED_ARRAY = [7684, 4355, 1807, 4667, 1210, 8187, 5907, 3030, 1919, 3975, 5122, 3106, 4547, 2036,
+                    3781, 2418, 8510, 3185, 8711, 7123]
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
