@@ -40,7 +40,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mode-eval", choices=["markov", "historico"], default="historico")
 
     # Q-learning
-    parser.add_argument("--num-pasos", type=int, default=155)
+    parser.add_argument("--num-pasos", type=int, default=156)
 
     # Paralelismo (entrenamiento PPO/A2C y evaluación sliding)
     parser.add_argument("--n-envs", type=int, default=8)
