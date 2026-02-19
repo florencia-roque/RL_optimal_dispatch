@@ -14,7 +14,7 @@ from src.utils.average_seeds import AverageSeeds
 
 # Fijar semilla para reproducibilidad
 seed = None
-EVAL_SEED = 7123
+EVAL_SEED = 7123 
 EVAL_SEED_ARRAY = [7684, 4355, 1807, 4667, 1210, 8187, 5907, 3030, 1919, 3975, 5122, 3106, 4547, 2036,
                     3781, 2418, 8510, 3185, 8711, 7123]
 
@@ -133,10 +133,10 @@ def main() -> None:
                 n_eval_episodes=args.n_eval_episodes,
                 window_weeks=args.window_weeks,
                 stride_weeks=args.stride_weeks,
-                n_envs=args.n_envs,
                 mode_eval=args.mode_eval,
                 eval_seed=EVAL_SEED
             )
+
         else: # ql
             agent.load(model_path, mode_eval=args.mode_eval)
             agent.evaluate(
