@@ -29,7 +29,7 @@ class AverageSeeds:
         mode_tag_str = mode_tag(0, "markov",multiple_seeds=True)
 
         CARPETA_ORIGEN = config.EVALUATIONS / algoritmo
-        CARPETA_DESTINO_MULTIPLE_SEEDS = CARPETA_ORIGEN / f"eval_{fecha_hora}_{mode_tag_str}"
+        CARPETA_DESTINO_MULTIPLE_SEEDS = CARPETA_ORIGEN / f"eval_{fecha_hora}_{mode_tag_str}_promedio_seeds"
         CARPETA_DESTINO_PROM_MULTIPLE_SEEDS = CARPETA_DESTINO_MULTIPLE_SEEDS / "promedios"
 
         # Crear carpeta donde irán los 114 promedios de las 20 evaluaciones con distinta semilla
@@ -45,8 +45,7 @@ class AverageSeeds:
                                    "costo_termico", "ingreso_exportacion", "demanda", "demanda_residual", "fraccion_turbinado", "qt_max_fisico", "energia_hidro_max_frac",
                                    "energia_hidro_obj", "aportes", "vertimiento", "action", "reward"]
         elif algoritmo == "ql":
-            COLUMNAS_DISCRETAS = ["volumen_discreto", "action"] 
-            COLUMNAS_DISCRETAS_CATEGORICAS = [ "hidrologia", "tiempo", "episode_id"]
+            COLUMNAS_DISCRETAS = ["volumen_discreto", "action", "hidrologia", "tiempo", "episode_id"] 
             COLUMNAS_CONTINUAS = ["volumen","volumen_turbinado", "energia_hidro", "energia_eolica",
                                    "energia_solar", "energia_biomasa", "energia_renovable", "energia_termico_bajo", "energia_termico_alto", "energia_exportada",
                                    "costo_termico", "ingreso_exportacion", "demanda", "demanda_residual", "fraccion_turbinado", "qt_max_fisico", "energia_hidro_max_frac",
@@ -57,8 +56,6 @@ class AverageSeeds:
             reglas[col] = 'mean'
         for col in COLUMNAS_DISCRETAS:
             reglas[col] = promedio_redondeado
-        for col in COLUMNAS_DISCRETAS_CATEGORICAS:
-            reglas[col] = moda_custom
 
         print("Iniciando procesamiento de escenarios...")
 
@@ -66,7 +63,7 @@ class AverageSeeds:
         # Chequear si las carpetas finalizan en est_markov y guardarlas en una lista de subcarpetas
         subcarpetas = [
             CARPETA_ORIGEN / d for d in os.listdir(CARPETA_ORIGEN)
-            if (CARPETA_ORIGEN / d).is_dir() and d.endswith("est_markov")
+            if (CARPETA_ORIGEN / d).is_dir() and d.__contains__("est_markov")
         ]
 
         # Promediar los CSV de cada escenario entre todas las semillas 
@@ -74,11 +71,14 @@ class AverageSeeds:
             dfs_seeds = []
            
             for subcarpeta in subcarpetas:
-                archivo = subcarpeta / f"escenario_{esc}.csv"
-                df = pd.read_csv(archivo)
-                df = df.reset_index(drop=True)
-                dfs_seeds.append(df) 
-
+                if str(subcarpeta).endswith("promedio_seeds"):
+                    pass
+                else:
+                    archivo = subcarpeta / f"escenario_{esc}.csv"
+                    df = pd.read_csv(archivo)
+                    df = df.reset_index(drop=True)
+                    dfs_seeds.append(df) 
+                    
             # La concatenación de los dataframes de las distintas semillas mismo escenario
             df_concat = pd.concat(dfs_seeds)
             
@@ -100,9 +100,12 @@ class AverageSeeds:
 
         for nombre_archivo in nombres_archivos_promedios:
             for subcarpeta in subcarpetas:
-                df_promedios = pd.read_csv(subcarpeta / "promedios" / nombre_archivo)
-                df_promedios = df_promedios.reset_index(drop=True)
-                dfs_seed_promedios.append(df_promedios)
+                if str(subcarpeta).endswith("promedio_seeds"):
+                    pass
+                else: 
+                    df_promedios = pd.read_csv(subcarpeta / "promedios" / nombre_archivo)
+                    df_promedios = df_promedios.reset_index(drop=True)
+                    dfs_seed_promedios.append(df_promedios)
 
             df_concat_promedios = pd.concat(dfs_seed_promedios)
 

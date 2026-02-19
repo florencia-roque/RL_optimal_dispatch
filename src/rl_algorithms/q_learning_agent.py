@@ -238,24 +238,41 @@ class QLearningAgent:
             )
             resultados[seed] = (df_avg, df_all)
 
-        df_avg_mean = None
-        df_all_mean = None
-        for seed, (df_avg, df_all) in resultados.items():
-            if df_avg_mean is None:
-                df_avg_mean = df_avg.copy()
-            else:
-                df_avg_mean += df_avg
+        list_df_avg = [res[0] for res in resultados.values()]
+        list_df_all = [res[1] for res in resultados.values()]
 
-            if df_all_mean is None:
-                df_all_mean = df_all.copy()
-            else:
-                df_all_mean += df_all 
-                
-        # Promediar los resultados
-        n_seeds = len(seeds)
-        df_avg_mean /= n_seeds
-        df_all_mean /= n_seeds
+        def aggregate_dataframes(df_list):
+            # Concatenamos todos los DFs uno sobre otro
+            df_concat = pd.concat(df_list)
+            
+            # Agrupamos por el índice (asumiendo que el índice representa el paso de tiempo/episodio)
+            grouped = df_concat.groupby(df_concat.index)
+            
+            cols_continuas = ["volumen","volumen_turbinado", "energia_hidro", "energia_eolica",
+                                   "energia_solar", "energia_biomasa", "energia_renovable", "energia_termico_bajo", "energia_termico_alto", "energia_exportada",
+                                   "costo_termico", "ingreso_exportacion", "demanda", "demanda_residual", "fraccion_turbinado", "qt_max_fisico", "energia_hidro_max_frac",
+                                   "energia_hidro_obj", "aportes", "vertimiento", "reward"]
 
+            cols_discretas = ["volumen_discreto", "action", "hidrologia", "tiempo", "episode_id"]
+
+            def custom_round_rule(series):
+                rounded_val = int(series.mean().round())
+                return 19 if rounded_val == 20 else rounded_val
+
+            # Diccionario de agregación
+            reglas = {col: 'mean' for col in cols_continuas}
+
+            for col in cols_discretas:
+                # La moda puede devolver múltiples valores, tomamos el primero [0]
+                reglas[col] = lambda x: x.mode().iloc[0] if not x.mode().empty else None
+
+            return grouped.agg(reglas)
+        
+        # Calcular los promedios/modas de cada columna para cada paso de tiempo/episodio
+        df_avg_mean = aggregate_dataframes(list_df_avg)
+        df_all_mean = aggregate_dataframes(list_df_all)
+
+        # Guardar resultados
         hdr = build_eval_header_from_env(env=self.env, mode_eval=mode_eval, multiple_seeds=True)
 
         reward_total, _, _ = save_eval_outputs(
@@ -263,7 +280,7 @@ class QLearningAgent:
             df_all_mean,
             alg=self.alg,
             fecha=hdr.fecha,
-            mode_tag_str=hdr.mode_tag_str,
+            mode_tag_str=f"{hdr.mode_tag_str}_promedio_seeds",
             estados_cols=[
                 "volumen_discreto",
                 "hidrologia",
