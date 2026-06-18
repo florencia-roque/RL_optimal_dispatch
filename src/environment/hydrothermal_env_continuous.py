@@ -353,18 +353,40 @@ class HydroThermalEnvCont(gym.Env):
         truncated = False
         return self._get_obs(), reward, terminated, truncated, info
     
-    def render(self, mode='human'):
-        if mode == 'human':
+    def render(self, mode=None):
+        current_mode = mode if mode is not None else getattr(self, "render_mode", "human")
+        if current_mode == 'human':
             print(f"Semana {self.tiempo}:")
             print(f"  Volumen embalse: {self.volumen:.2f}/{self.V_CLAIRE_MAX}")
             print(f"  Estado hidrológico: {self.hidrologia}")
             print(f"  Porcentaje llenado: {(self.volumen/self.V_CLAIRE_MAX)*100:.1f}%")
             print("-" * 30)
-        elif mode == 'rgb_array':
-            # Retornar una imagen como array numpy para grabacion
-            pass
-        elif mode == 'ansi':
-            # Retornar string para mostrar en terminal
+        elif current_mode == 'rgb_array':
+            import matplotlib.pyplot as plt
+            import numpy as np
+            
+            # Crear figura temporal (no se mostrará en pantalla)
+            fig, ax = plt.subplots(figsize=(6, 4), dpi=100)
+            
+            ax.bar(["Embalse Claire"], [self.V_CLAIRE_MAX], color="#E0E0E0", width=0.4)
+            
+            ax.bar(["Embalse Claire"], [self.volumen], color="#2196F3", width=0.4)
+            
+            ax.set_ylim(0, self.V_CLAIRE_MAX * 1.1)
+            ax.set_ylabel("Volumen (hm³)")
+            ax.set_title(f"PPO | Semana: {self.tiempo} / 155 | Hidrología (eshy): {self.hidrologia}")
+            
+            pct = (self.volumen / self.V_CLAIRE_MAX) * 100
+            ax.text(0, self.volumen / 2, f"{pct:.1f}%", ha='center', va='center', color='white', fontweight='bold')
+
+            fig.canvas.draw()
+            img_rgba = np.asarray(fig.canvas.buffer_rgba())
+            img = img_rgba[:, :, :3]
+            plt.close(fig)
+            
+            return img
+
+        elif current_mode == 'ansi':
             return f"T:{self.tiempo} V:{self.volumen:.1f} H:{self.hidrologia}"
         
     def _get_obs(self):
