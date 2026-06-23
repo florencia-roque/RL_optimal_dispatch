@@ -4,7 +4,7 @@ from __future__ import annotations
 from gymnasium.wrappers import TimeLimit
 from src.environment.hydrothermal_env_continuous import HydroThermalEnvCont
 from src.environment.hydrothermal_env_tabular import HydroThermalEnvTab
-from src.environment.wrappers import OneHotFlattenObs
+from src.environment.wrappers import OneHotFlattenObs, TimeFeatureWrapper
 
 # -----------------------------------------------------------------------------
 # Helpers
@@ -36,8 +36,15 @@ def make_base_env(alg: str, modo: str, seed=None):
     T_MAX = getattr(inner, "T_MAX", None)
     if T_MAX is None:
         raise AttributeError("El entorno no tiene atributo T_MAX definido.")
+    
+    max_steps = int(T_MAX) + 1
+    env = TimeLimit(env, max_episode_steps=int(T_MAX) + 1)
 
-    return TimeLimit(env, max_episode_steps=int(T_MAX) + 1)
+    # Inyectamos el tiempo restante solo a los algoritmos de aproximación continua
+    if alg_n in {"ppo", "a2c"}:
+        env = TimeFeatureWrapper(env, max_steps=max_steps)
+
+    return env
 
 # -----------------------------------------------------------------------------
 # Entrenamiento / Evaluación

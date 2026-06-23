@@ -81,9 +81,10 @@ class PPOAgent:
         ent_coef = hparams.get("ent_coef", 0.005) if hparams else 0.005
 
         # hiperparametros hallados por optuna (hardcodeados!)
+        # el n_steps lo pongo en 156 para estabilizar el aprendizaje de la política recurrente
         learning_rate = 1.9694437290033328e-05
         gamma = 0.9922058818530016
-        n_steps = 137
+        n_steps = 156
         ent_coef = 0.0002918704130075
 
         print(f"Hiperparámetros de entrenamiento PPO: learning_rate={learning_rate}, gamma={gamma}, n_steps={n_steps}, ent_coef={ent_coef}")
@@ -157,14 +158,28 @@ class PPOAgent:
     ):
         if self.model is None:
             raise RuntimeError("Primero cargar o entrenar el modelo PPO.")
-
+        
+        # Si no existe el contexto de evaluación (ej: durante el tuning), lo creamos dinámicamente
         if not hasattr(self, "ctx") or self.ctx is None:
-            raise RuntimeError("El contexto de evaluación no está construido. Llamar a 'load' primero.")
-
-        # Si cambiamos de modo en la misma ejecución, regeneramos el contexto
-        if self.ctx.mode_eval != mode_eval:
+            print("[INFO] Creando contexto de evaluación dinámico on-the-fly para el Trial...")
+            self.ctx = build_sb3_eval_context(
+                alg=self.alg, 
+                n_envs=self.n_envs, 
+                mode_eval=mode_eval, 
+                deterministico=self.deterministico, 
+                seed=eval_seed, 
+                multiple_seeds=False
+            )
+        # Si ya existía pero cambió el modo solicitado, lo regeneramos
+        elif self.ctx.mode_eval != mode_eval:
+             print(f"[INFO] Cambiando modo de evaluación de {self.ctx.mode_eval} a {mode_eval}...")
              self.ctx = build_sb3_eval_context(
-                alg=self.alg, n_envs=self.n_envs, mode_eval=mode_eval, seed=eval_seed
+                alg=self.alg, 
+                n_envs=self.n_envs, 
+                mode_eval=mode_eval, 
+                deterministico=self.deterministico, 
+                seed=eval_seed, 
+                multiple_seeds=False
             )
 
         print(f"[INFO] Configurando evaluación PPO (Modo: {mode_eval})...")

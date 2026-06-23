@@ -6,6 +6,7 @@ __pycache__/
 *$py.class
 .venv/
 venv/
+despachador.py
 
 # ============================
 #  RESULTADOS DE EXPERIMENTOS

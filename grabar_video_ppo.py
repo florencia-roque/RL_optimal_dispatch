@@ -3,17 +3,22 @@ from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv, VecNormalize
 from src.evaluation.eval_config import build_sb3_eval_context
 
-modelo_path = "results/models/ppo/RecurrentPPO_hydro_thermal_claire_continuous_2026-01-28_12-23-37_est_markov.zip"
-vec_norm_path = "results/models/ppo/vecnorm_2026-01-28_12-23-37_est_markov.pkl"
+modelo_path = "results/models/ppo/RecurrentPPO_hydro_thermal_claire_continuous_2026-06-23_09-42-14_est_markov.zip"
+vec_norm_path = "results/models/ppo/vecnorm_2026-06-23_09-42-14_est_markov.pkl"
 video_folder = "results/videos/"
 os.makedirs(video_folder, exist_ok=True)
 
+det = 0 if "est" in modelo_path else 1
+
 print("Configurando entorno con wrappers...")
+
 ctx = build_sb3_eval_context(
     alg="ppo", 
     n_envs=1, 
     mode_eval="historico", 
-    seed=42
+    deterministico=det,
+    seed=7123,
+    multiple_seeds=False
 )
 eval_env = DummyVecEnv(ctx.env_fns)
 
@@ -34,7 +39,7 @@ eval_env = VecVideoRecorder(
     video_folder=video_folder,
     record_video_trigger=lambda step: step == 0,
     video_length=156,
-    name_prefix="ppo_hydro_dispatch"
+    name_prefix="ppo_hydro_dispatch_nuevo"
 )
 
 print("Cargando modelo RecurrentPPO...")
