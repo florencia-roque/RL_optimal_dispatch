@@ -75,17 +75,19 @@ class PPOAgent:
             net_arch=dict(pi=[128], vf=[128]),
         )
 
-        learning_rate = hparams.get("learning_rate", 5e-5) if hparams else 5e-5
-        gamma = hparams.get("gamma", 0.99) if hparams else 0.99
-        n_steps = hparams.get("n_steps", 104) if hparams else 104
-        ent_coef = hparams.get("ent_coef", 0.005) if hparams else 0.005
-
         # hiperparametros hallados por optuna (hardcodeados!)
-        # el n_steps lo pongo en 156 para estabilizar el aprendizaje de la política recurrente
-        learning_rate = 1.9694437290033328e-05
-        gamma = 0.9922058818530016
+        learning_rate = 2.721912426157061e-06
+        gamma = 0.9910010230093287
         n_steps = 156
-        ent_coef = 0.0002918704130075
+        ent_coef = 0.0007919817951068214
+
+        # if hparams is None:
+        #     hparams = {}
+
+        # learning_rate = hparams.get("learning_rate", 2e-5) 
+        # gamma         = hparams.get("gamma", 0.99)         
+        # n_steps       = hparams.get("n_steps", 156)        
+        # ent_coef      = hparams.get("ent_coef", 0.001)     
 
         print(f"Hiperparámetros de entrenamiento PPO: learning_rate={learning_rate}, gamma={gamma}, n_steps={n_steps}, ent_coef={ent_coef}")
         

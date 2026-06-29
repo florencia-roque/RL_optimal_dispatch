@@ -1,6 +1,7 @@
 # src/utils/hparam_tuning.py
 
 import optuna
+import numpy as np
 import pandas as pd
 from pathlib import Path 
 from stable_baselines3.common.callbacks import BaseCallback   
@@ -60,9 +61,23 @@ class HyperparameterTuner:
                 pruning_callback = TrialPruningCallback(trial, monitor="rollout/ep_rew_mean")
                 agent.train(total_episodes=1000, hparams=hparams, extra_callback=pruning_callback)
 
-            # Evaluación final (común para todos)
-            df_avg, _ = agent.evaluate(n_eval_episodes=20, eval_seed=42)
-            score = df_avg["reward"].mean()
+
+            # --- EVALUACIÓN ROBUSTA MULTI-SEMILLA ---
+            # Definimos un set de semillas fijas para validar todos los trials por igual
+            semillas_validacion = [101, 202, 303]
+            costos_semillas = []
+
+            for seed in semillas_validacion:
+                df_avg, df_all = agent.evaluate(n_eval_episodes=15, eval_seed=seed)
+                
+                # Calculamos el costo térmico promedio de esta semilla
+                costo_medio_seed = df_all.groupby("episode_id")["costo_termico"].sum().mean()
+                costos_semillas.append(costo_medio_seed)
+
+            # El score final es el PROMEDIO de los costos de todas las semillas
+            # Lo pasamos en negativo porque Optuna busca MAXIMIZAR (y queremos el menor costo)
+            costo_termico_global = float(np.mean(costos_semillas))
+            score = -costo_termico_global
             
             self._save_trial(trial.number, hparams, score)
             return score
@@ -75,14 +90,14 @@ class HyperparameterTuner:
             return {
                 "learning_rate": trial.suggest_float("learning_rate", 1e-6, 1e-4, log=True),
                 "gamma": trial.suggest_float("gamma", 0.98, 0.9999, log=False),
-                "n_steps": trial.suggest_int("n_steps", 64, 256, log=True),
+                "n_steps": trial.suggest_categorical("n_steps", [78, 156]),
                 "ent_coef": trial.suggest_float("ent_coef", 1e-8, 1e-2, log=True),
             }
         elif self.alg == "a2c":
             return {
                 "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True),
                 "gamma": trial.suggest_float("gamma", 0.9, 0.9999, log=True),
-                "n_steps": trial.suggest_int("n_steps", 64, 256, log=True),
+                "n_steps": trial.suggest_categorical("n_steps", [78, 156]),
             }
         elif self.alg == "ql":
             return {
