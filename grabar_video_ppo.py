@@ -3,8 +3,8 @@ from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv, VecNormalize
 from src.evaluation.eval_config import build_sb3_eval_context
 
-modelo_path = "results/models/ppo/RecurrentPPO_hydro_thermal_claire_continuous_2026-06-23_09-42-14_est_markov.zip"
-vec_norm_path = "results/models/ppo/vecnorm_2026-06-23_09-42-14_est_markov.pkl"
+modelo_path = "results/models/ppo/RecurrentPPO_hydro_thermal_claire_continuous_2026-06-29_20-41-09_est_markov.zip"
+vec_norm_path = "results/models/ppo/vecnorm_2026-06-29_20-41-09_est_markov.pkl"
 video_folder = "results/videos/"
 os.makedirs(video_folder, exist_ok=True)
 

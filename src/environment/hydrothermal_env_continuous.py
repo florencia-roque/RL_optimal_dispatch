@@ -70,28 +70,30 @@ class HydroThermalEnvCont(gym.Env):
         self.action_space = spaces.Box(0.0, 1.0, shape=(1,), dtype=np.float32)
         
         # Cargar datos determinísticos de MOP (energias renovables y demanda)
+        # La columna 0 de cada df es el promedio, de la 1 hasta la 114 contienen los escenarios
         self.data_biomasa = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=0).iloc[:, 1:]
         self.data_eolico  = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=1).iloc[:, 1:]
         self.data_solar   = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=2).iloc[:, 1:]
         self.data_demanda = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=3).iloc[:, 1:]
 
-        # Agregar columna con promedio de crónicas
-        # Defragmentar creando una copia y luego asignar la columna
-        col_biomasa = self.data_biomasa.mean(axis=1)
-        self.data_biomasa = self.data_biomasa.copy()
-        self.data_biomasa["PROMEDIO"] = col_biomasa
+        # # Agregar columna con promedio de crónicas
+        # # Defragmentar creando una copia y luego asignar la columna
+        # col_biomasa = self.data_biomasa.mean(axis=1)
+        # self.data_biomasa = self.data_biomasa.copy()
+        # self.data_biomasa["PROMEDIO"] = col_biomasa
+# 
+        # col_eolico = self.data_eolico.mean(axis=1)
+        # self.data_eolico = self.data_eolico.copy()
+        # self.data_eolico["PROMEDIO"] = col_eolico
+# 
+        # col_solar = self.data_solar.mean(axis=1)
+        # self.data_solar = self.data_solar.copy()
+        # self.data_solar["PROMEDIO"] = col_solar
+        # 
+        # col_demanda = self.data_demanda.mean(axis=1)
+        # self.data_demanda = self.data_demanda.copy()
+        # self.data_demanda["PROMEDIO"] = col_demanda
 
-        col_eolico = self.data_eolico.mean(axis=1)
-        self.data_eolico = self.data_eolico.copy()
-        self.data_eolico["PROMEDIO"] = col_eolico
-
-        col_solar = self.data_solar.mean(axis=1)
-        self.data_solar = self.data_solar.copy()
-        self.data_solar["PROMEDIO"] = col_solar
-        
-        col_demanda = self.data_demanda.mean(axis=1)
-        self.data_demanda = self.data_demanda.copy()
-        self.data_demanda["PROMEDIO"] = col_demanda
 
         # Cargar matriz de aportes discretizada (con estado hidrológico 0,1,2,3,4)
         self.data_matriz_aportes_discreta = leer_archivo(str(CLAIRE_HIDROLOGIA_CSV), sep=",", header=0)
@@ -117,10 +119,15 @@ class HydroThermalEnvCont(gym.Env):
         self.indice_inicial_episodio = 0
         self.episodios_recorridos = 0
 
+        self.esc_sorteado = self.np_random.choice(np.arange(1,115))
+
     def reset(self, seed=None, options=None):
         # IMPORTANTE: inicializa el RNG del entorno
         actual_seed = seed if seed is not None else self.SEED
         super().reset(seed=actual_seed)
+
+        # sortear el escenario entre 1 y 114
+        self.esc_sorteado = self.np_random.choice(np.arange(1,115))
 
         if options and "start_week" in options:
             self.indice_inicial_episodio = int(options["start_week"])
@@ -209,38 +216,28 @@ class HydroThermalEnvCont(gym.Env):
 
     def _demanda(self):
         # Obtener demanda de energía para el tiempo actual
-        energias_demandas = self.data_demanda["PROMEDIO"]
-        if self.tiempo < len(energias_demandas):
-            # ESTO ESTA COMENTADO PORQUE AHORA SE AUMENTO EN EL MOP A POR 1.2 ENTONCES LA DEMANDA YA VIENE MAS GRANDE, HAY QUE USARLA ASI COMO VIENE (SIN MULTIPLICAR)
-            # return energias_demandas.iloc[self.tiempo] * 1.2 
-            return energias_demandas.iloc[self.tiempo]
-        else:
-            raise ValueError("Tiempo fuera de rango para datos de demanda")
-    
+        energia_demanda = self.data_demanda.iloc[self.tiempo,0]
+   
+        return energia_demanda
+        
     def _gen_eolico(self):
-        # Obtener generación eólica para el tiempo actual
-        energias_eolico = self.data_eolico["PROMEDIO"]
-        if self.tiempo < len(energias_eolico):
-            return 0
-        else:
-            raise ValueError("Tiempo fuera de rango para datos eólicos")
-
+        # Obtener generación eólica para el tiempo actual y escenario sorteado
+        energia_eolico = self.data_eolico.iloc[self.tiempo,self.esc_sorteado]
+       
+        return energia_eolico
+        
     def _gen_solar(self):
-        # Obtener generacion solar para el tiempo actual 
-        energias_solar = self.data_solar["PROMEDIO"]
-        if self.tiempo < len(energias_solar):
-            return 0
-        else:
-            raise ValueError("Tiempo fuera de rango para datos solares")
-
+        # Obtener generacion solar para el tiempo actual y escenario sorteado
+        energia_solar = self.data_solar.iloc[self.tiempo,self.esc_sorteado]
+        
+        return energia_solar
+       
     def _gen_bio(self):
-        # Obtener generacion de biomasa para el tiempo actual
-        energias_biomasa = self.data_biomasa["PROMEDIO"]
-        if self.tiempo < len(energias_biomasa):
-            return 0
-        else:
-            raise ValueError("Tiempo fuera de rango para datos biomasa")
-
+        # Obtener generacion de biomasa para el tiempo actual y escenario sorteado
+        energia_biomasa = self.data_biomasa.iloc[self.tiempo,self.esc_sorteado]
+        
+        return energia_biomasa
+      
     def _gen_renovable(self):
         # Generacion total de energias renovables no convencionales
         return self._gen_eolico() + self._gen_solar() + self._gen_bio()

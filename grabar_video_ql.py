@@ -4,7 +4,7 @@ from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
 from src.environment.hydrothermal_env_tabular import HydroThermalEnvTab
 from src.rl_algorithms.q_learning_agent import QLearningAgent
 
-modelo_path = "results/models/ql/Q_table_2026-01-28_15-25-09_est_markov.npy"
+modelo_path = "results/models/ql/Q_table_2026-06-30_23-54-17_est_markov.npy"
 video_folder = "results/videos/"
 os.makedirs(video_folder, exist_ok=True)
 
@@ -26,7 +26,7 @@ eval_env = VecVideoRecorder(
     video_folder=video_folder,
     record_video_trigger=lambda step: step == 0,
     video_length=156,
-    name_prefix="ql_hydro_dispatch"
+    name_prefix="ql_hydro_dispatch_nuevo"
 )
 
 print("Cargando agente Q-Learning...")
