@@ -20,7 +20,7 @@ CLAIRE_HIDROLOGIA_CSV = DATA_PROCESSED / "hidrologia_claire.csv"
 CLAIRE_MATRICES_CSV = DATA_PROCESSED / "matrices_markov_claire.csv"
 
 # MOP determinísticos (energias renovables y demanda)
-MOP_DET_XLSX = DATA_RAW / "mop" / "energias_ernc_demanda_total.xlsx"   # biomasa/eólico/solar/demanda
+MOP_DET_XLSX = DATA_RAW / "mop" / "energias_ernc_demanda_nuevo.xlsx"   # biomasa/eólico/solar/demanda
 MOP_APORTES_DET_XLSX = DATA_RAW / "mop" / "aportes_deterministicos.xlsx"  # para entrenar con aportes deterministicos
 
 # Resultados
