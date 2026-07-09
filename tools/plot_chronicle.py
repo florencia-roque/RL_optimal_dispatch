@@ -68,8 +68,9 @@ ax.stackplot(
     df[col_turbinada]/1000,     # Hydro (azul por defecto)
     df[col_termico_bajo]/1000,  # Thermal low-cost (naranja)
     df[col_termico_alto]/1000,  # Thermal high-cost (verde)
-    labels=["Hydro", "Thermal low-cost", "Thermal high-cost"],
-    colors=["#b8fff6", "#fbd1e7", "#ff0000"]  # turquesa, rosa, rojo
+    df[col_renovable]/1000,      # Renewable (rojo)
+    labels=["Hydro", "Thermal low-cost", "Thermal high-cost", "Renewable"],
+    colors=["#65a1ef", "#fbd1e7", "#ff0000", "#00ff00"]  # turquesa, rosa, rojo, verde
 )
 
 # Demanda (negro)
