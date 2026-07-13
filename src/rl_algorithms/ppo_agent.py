@@ -75,11 +75,11 @@ class PPOAgent:
             net_arch=dict(pi=[128], vf=[128]),
         )
 
-        # hiperparametros hallados por optuna (hardcodeados!)
-        learning_rate = 2.721912426157061e-06
-        gamma = 0.9910010230093287
-        n_steps = 156
-        ent_coef = 0.0007919817951068214
+        # hiperparametros usados en la publicacion anterior
+        learning_rate = 1.97e-05
+        gamma = 0.992
+        n_steps = 137
+        ent_coef = 2.92e-04
 
         # if hparams is None:
         #     hparams = {}

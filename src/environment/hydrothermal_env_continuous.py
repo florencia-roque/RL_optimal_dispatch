@@ -41,6 +41,7 @@ class HydroThermalEnvCont(gym.Env):
     COSTO_TERMICO_BAJO = 100.0 # USD/MWh 
     COSTO_TERMICO_ALTO = 300.0 # USD/MWh
     COSTO_VERTIMIENTO = 0.0 # USD/MWh
+    # COSTO_LAGO_BAJO = 120 # USD/MWh
 
     # poner 0 si queremos usar aportes estocásticos
     DETERMINISTICO = 0
@@ -70,30 +71,11 @@ class HydroThermalEnvCont(gym.Env):
         self.action_space = spaces.Box(0.0, 1.0, shape=(1,), dtype=np.float32)
         
         # Cargar datos determinísticos de MOP (energias renovables y demanda)
-        # La columna 0 de cada df es el promedio, de la 1 hasta la 114 contienen los escenarios
-        self.data_biomasa = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=0).iloc[:, 1:]
-        self.data_eolico  = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=1).iloc[:, 1:]
-        self.data_solar   = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=2).iloc[:, 1:]
-        self.data_demanda = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=3).iloc[:, 1:]
-
-        # # Agregar columna con promedio de crónicas
-        # # Defragmentar creando una copia y luego asignar la columna
-        # col_biomasa = self.data_biomasa.mean(axis=1)
-        # self.data_biomasa = self.data_biomasa.copy()
-        # self.data_biomasa["PROMEDIO"] = col_biomasa
-# 
-        # col_eolico = self.data_eolico.mean(axis=1)
-        # self.data_eolico = self.data_eolico.copy()
-        # self.data_eolico["PROMEDIO"] = col_eolico
-# 
-        # col_solar = self.data_solar.mean(axis=1)
-        # self.data_solar = self.data_solar.copy()
-        # self.data_solar["PROMEDIO"] = col_solar
-        # 
-        # col_demanda = self.data_demanda.mean(axis=1)
-        # self.data_demanda = self.data_demanda.copy()
-        # self.data_demanda["PROMEDIO"] = col_demanda
-
+        # Las columnas de la 0 a la 113 de cada df son los escenarios
+        self.data_biomasa = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name="biomasa").iloc[:, 1:]
+        self.data_eolico  = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name="eolico").iloc[:, 1:]
+        self.data_solar   = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name="solar").iloc[:, 1:]
+        self.data_demanda = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name="demanda").iloc[:, 1:]
 
         # Cargar matriz de aportes discretizada (con estado hidrológico 0,1,2,3,4)
         self.data_matriz_aportes_discreta = leer_archivo(str(CLAIRE_HIDROLOGIA_CSV), sep=",", header=0)
@@ -119,7 +101,10 @@ class HydroThermalEnvCont(gym.Env):
         self.indice_inicial_episodio = 0
         self.episodios_recorridos = 0
 
+        # PARA ENTRENAR 
         self.esc_sorteado = self.np_random.choice(np.arange(1,115))
+        # PARA EVALUAR
+        # self.esc_sorteado = 0
 
     def reset(self, seed=None, options=None):
         # IMPORTANTE: inicializa el RNG del entorno
@@ -127,7 +112,10 @@ class HydroThermalEnvCont(gym.Env):
         super().reset(seed=actual_seed)
 
         # sortear el escenario entre 1 y 114
+        # PARA ENTRENAR
         self.esc_sorteado = self.np_random.choice(np.arange(1,115))
+        # PARA EVALUAR
+        # self.esc_sorteado = (self.esc_sorteado % 114) + 1
 
         if options and "start_week" in options:
             self.indice_inicial_episodio = int(options["start_week"])
@@ -153,6 +141,14 @@ class HydroThermalEnvCont(gym.Env):
 
         return self._get_obs(), info
     
+    # def _costo_lago(self):
+    #     # Costo por mantener el lago bajo (volumen < 8000 hm3)
+    #     if self.volumen < 8000:
+    #         vol_penalizado = 8000 - self.volumen
+    #         return self.COSTO_LAGO_BAJO * vol_penalizado * self.K_CLAIRE # USD
+    #     else:
+    #         return 0
+
     def _inicial_hidrologia(self):
         if self.DETERMINISTICO == 1:
             return int(self.aportes_deterministicos.iloc[self.tiempo, 1])
@@ -222,19 +218,19 @@ class HydroThermalEnvCont(gym.Env):
         
     def _gen_eolico(self):
         # Obtener generación eólica para el tiempo actual y escenario sorteado
-        energia_eolico = self.data_eolico.iloc[self.tiempo,self.esc_sorteado]
-       
+        energia_eolico = self.data_eolico.iloc[self.tiempo,self.esc_sorteado-1]
+    
         return energia_eolico
         
     def _gen_solar(self):
         # Obtener generacion solar para el tiempo actual y escenario sorteado
-        energia_solar = self.data_solar.iloc[self.tiempo,self.esc_sorteado]
+        energia_solar = self.data_solar.iloc[self.tiempo,self.esc_sorteado-1]
         
         return energia_solar
        
     def _gen_bio(self):
         # Obtener generacion de biomasa para el tiempo actual y escenario sorteado
-        energia_biomasa = self.data_biomasa.iloc[self.tiempo,self.esc_sorteado]
+        energia_biomasa = self.data_biomasa.iloc[self.tiempo,self.esc_sorteado-1]
         
         return energia_biomasa
       
@@ -342,8 +338,12 @@ class HydroThermalEnvCont(gym.Env):
         energia_vertida = self.vertimiento * self.K_CLAIRE
         costo_vertimiento = energia_vertida * self.COSTO_VERTIMIENTO # USD
 
+        # costo_lago = self._costo_lago() # USD
+
         # Recompensa
-        reward_usd = - costo_termico - costo_vertimiento + ingreso_exportacion  # USD
+        # reward_usd = - costo_termico - costo_vertimiento + ingreso_exportacion - costo_lago # USD
+        # PARA EVALUAR DESCOMENTAR LO DE ABAJO Y COMENTAR LO DE ARRIBA
+        reward_usd = - costo_termico - costo_vertimiento + ingreso_exportacion # USD
         reward = reward_usd / 1e6  # MUSD
 
         terminated = self.tiempo >= self.T_MAX

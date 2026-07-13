@@ -54,10 +54,15 @@ class HydroThermalEnvTab(gym.Env):
 
     SEED = None
 
-    def __init__(self, seed=None):
+    def __init__(self, modo="markov", seed=None):
         super().__init__()
 
         self.SEED = seed
+        self.MODO = modo
+
+        # Validación inmediata para detectar errores de configuración
+        if self.DETERMINISTICO == 0 and self.MODO not in {"markov", "historico"}:
+            raise ValueError(f"Modo inválido: {self.MODO}. Debe ser 'markov' u 'historico'")
 
         self.N_BINS_VOL = 10
         self.VOL_EDGES = np.linspace(self.V_CLAIRE_MIN, self.V_CLAIRE_MAX, self.N_BINS_VOL + 1)
@@ -71,16 +76,11 @@ class HydroThermalEnvTab(gym.Env):
         self.action_space = spaces.Discrete(self.N_ACTIONS)
 
         # Cargar datos determinísticos de MOP (energias renovables y demanda)
-        # La columna 0 de cada df es el promedio, de la 1 hasta la 114 contienen los escenarios
-        self.data_biomasa = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=0).iloc[:, 1:]
-        self.data_eolico  = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=1).iloc[:, 1:]
-        self.data_solar   = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=2).iloc[:, 1:]
-        self.data_demanda = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name=3).iloc[:, 1:]
-
-        # self.data_biomasa["PROMEDIO"] = self.data_biomasa.mean(axis=1)
-        # self.data_eolico["PROMEDIO"]  = self.data_eolico.mean(axis=1)
-        # self.data_solar["PROMEDIO"]   = self.data_solar.mean(axis=1)
-        # self.data_demanda["PROMEDIO"] = self.data_demanda.mean(axis=1)
+        # Las columnas de la 0 a la 113 de cada df son los escenarios
+        self.data_biomasa = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name="biomasa").iloc[:, 1:]
+        self.data_eolico  = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name="eolico").iloc[:, 1:]
+        self.data_solar   = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name="solar").iloc[:, 1:]
+        self.data_demanda = leer_archivo(str(MOP_DET_XLSX), header=0, sheet_name="demanda").iloc[:, 1:]
 
         self.data_matriz_aportes_discreta = leer_archivo(str(CLAIRE_HIDROLOGIA_CSV), sep=",", header=0)
         self.aportes_deterministicos = leer_archivo(str(MOP_APORTES_DET_XLSX), sep=",", header=0)
@@ -100,7 +100,10 @@ class HydroThermalEnvTab(gym.Env):
         self.episodios_recorridos = 0
         self.vertimiento = 0.0
 
-        self.esc_sorteado = self.np_random.choice(np.arange(1,115))
+        # PARA ENTRENAR
+        # self.esc_sorteado = self.np_random.choice(np.arange(1,115))
+        # PARA EVALUAR
+        self.esc_sorteado = 0
 
     def reset(self, seed=None, options=None):
         # IMPORTANTE: inicializa el RNG del entorno
@@ -108,8 +111,12 @@ class HydroThermalEnvTab(gym.Env):
         super().reset(seed=actual_seed)
 
         # sortear el escenario entre 1 y 114
-        self.esc_sorteado = self.np_random.choice(np.arange(1,115))
         
+        # PARA ENTRENAR
+        # self.esc_sorteado = self.np_random.choice(np.arange(1,115))
+        # PARA EVALUAR
+        self.esc_sorteado = (self.esc_sorteado % 114) + 1
+
         if options and "start_week" in options:
             self.indice_inicial_episodio = int(options["start_week"])
             # self.episodios_recorridos = self.indice_inicial_episodio // 52
@@ -211,19 +218,19 @@ class HydroThermalEnvTab(gym.Env):
     
     def _gen_eolico(self):
         # Obtener generación eólica para el tiempo actual y escenario sorteado
-        energia_eolico = self.data_eolico.iloc[self.tiempo,self.esc_sorteado]
+        energia_eolico = self.data_eolico.iloc[self.tiempo,self.esc_sorteado-1]
        
         return energia_eolico
         
     def _gen_solar(self):
         # Obtener generacion solar para el tiempo actual y escenario sorteado
-        energia_solar = self.data_solar.iloc[self.tiempo,self.esc_sorteado]
+        energia_solar = self.data_solar.iloc[self.tiempo,self.esc_sorteado-1]
         
         return energia_solar
        
     def _gen_bio(self):
         # Obtener generacion de biomasa para el tiempo actual y escenario sorteado
-        energia_biomasa = self.data_biomasa.iloc[self.tiempo,self.esc_sorteado]
+        energia_biomasa = self.data_biomasa.iloc[self.tiempo,self.esc_sorteado-1]
         
         return energia_biomasa
     
