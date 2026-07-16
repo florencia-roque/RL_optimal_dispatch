@@ -102,9 +102,9 @@ class HydroThermalEnvCont(gym.Env):
         self.episodios_recorridos = 0
 
         # PARA ENTRENAR 
-        self.esc_sorteado = self.np_random.choice(np.arange(1,115))
+        # self.esc_sorteado = self.np_random.choice(np.arange(1,115))
         # PARA EVALUAR
-        # self.esc_sorteado = 0
+        self.esc_sorteado = 0
 
     def reset(self, seed=None, options=None):
         # IMPORTANTE: inicializa el RNG del entorno
@@ -113,9 +113,9 @@ class HydroThermalEnvCont(gym.Env):
 
         # sortear el escenario entre 1 y 114
         # PARA ENTRENAR
-        self.esc_sorteado = self.np_random.choice(np.arange(1,115))
+        # self.esc_sorteado = self.np_random.choice(np.arange(1,115))
         # PARA EVALUAR
-        # self.esc_sorteado = (self.esc_sorteado % 114) + 1
+        self.esc_sorteado = (self.esc_sorteado % 114) + 1
 
         if options and "start_week" in options:
             self.indice_inicial_episodio = int(options["start_week"])
