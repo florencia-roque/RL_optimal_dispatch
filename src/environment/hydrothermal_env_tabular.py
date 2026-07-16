@@ -54,11 +54,12 @@ class HydroThermalEnvTab(gym.Env):
 
     SEED = None
 
-    def __init__(self, modo="markov", seed=None):
+    def __init__(self, modo="markov", seed=None, is_eval=False):
         super().__init__()
 
         self.SEED = seed
         self.MODO = modo
+        self.is_eval = is_eval
 
         # Validación inmediata para detectar errores de configuración
         if self.DETERMINISTICO == 0 and self.MODO not in {"markov", "historico"}:
@@ -99,10 +100,6 @@ class HydroThermalEnvTab(gym.Env):
         self.indice_inicial_episodio = 0
         self.episodios_recorridos = 0
         self.vertimiento = 0.0
-
-        # PARA ENTRENAR
-        # self.esc_sorteado = self.np_random.choice(np.arange(1,115))
-        # PARA EVALUAR
         self.esc_sorteado = 0
 
     def reset(self, seed=None, options=None):
@@ -110,12 +107,12 @@ class HydroThermalEnvTab(gym.Env):
         actual_seed = seed if seed is not None else self.SEED
         super().reset(seed=actual_seed)
 
-        # sortear el escenario entre 1 y 114
-        
-        # PARA ENTRENAR
-        # self.esc_sorteado = self.np_random.choice(np.arange(1,115))
-        # PARA EVALUAR
-        self.esc_sorteado = (self.esc_sorteado % 114) + 1
+        if self.is_eval:
+            # PARA EVALUAR (Secuencial 1 al 114)
+            self.esc_sorteado = (self.esc_sorteado % 114) + 1
+        else:
+            # PARA ENTRENAR (Aleatorio)
+            self.esc_sorteado = self.np_random.choice(np.arange(1, 115))
 
         if options and "start_week" in options:
             self.indice_inicial_episodio = int(options["start_week"])

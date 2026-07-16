@@ -20,15 +20,15 @@ def _normalize_alg(alg: str) -> str:
         return "a2c"
     return a
 
-def make_base_env(alg: str, modo: str, seed=None):
+def make_base_env(alg: str, modo: str, seed=None, is_eval: bool = False):
     """Crea el entorno base (tipo de env + wrappers + TimeLimit)"""
     alg_n = _normalize_alg(alg)
 
     if alg_n in {"ppo", "a2c"}:
-        env = HydroThermalEnvCont(modo=modo, seed=seed)
+        env = HydroThermalEnvCont(modo=modo, seed=seed, is_eval=is_eval)
         env = OneHotFlattenObs(env)
     elif alg_n == "ql":
-        env = HydroThermalEnvTab(seed=seed)
+        env = HydroThermalEnvTab(seed=seed, is_eval=is_eval)
     else:
         raise ValueError(f"Algoritmo desconocido en env_factory: {alg}")
 
@@ -52,7 +52,7 @@ def make_base_env(alg: str, modo: str, seed=None):
 
 def make_train_env(alg: str, deterministico: int = 0, seed: int = None):
     """Entorno para ENTRENAMIENTO"""
-    env = make_base_env(alg, "markov", seed=seed)
+    env = make_base_env(alg, "markov", seed=seed, is_eval=False)
     inner = env.unwrapped
 
     if hasattr(inner, "DETERMINISTICO"):
@@ -79,7 +79,7 @@ def make_eval_env(alg: str, modo: str, deterministico: int = 0, seed: int = None
     env: gymnasium.Env
         Environment ya envuelto con TimeLimit (+ wrappers si aplica).
     """
-    env = make_base_env(alg, modo, seed=seed)
+    env = make_base_env(alg, modo, seed=seed, is_eval=True)
     inner = env.unwrapped
 
     # deterministico = int(getattr(inner, "DETERMINISTICO", 0))

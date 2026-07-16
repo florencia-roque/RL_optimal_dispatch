@@ -41,7 +41,6 @@ class HydroThermalEnvCont(gym.Env):
     COSTO_TERMICO_BAJO = 100.0 # USD/MWh 
     COSTO_TERMICO_ALTO = 300.0 # USD/MWh
     COSTO_VERTIMIENTO = 0.0 # USD/MWh
-    # COSTO_LAGO_BAJO = 120 # USD/MWh
 
     # poner 0 si queremos usar aportes estocásticos
     DETERMINISTICO = 0
@@ -50,11 +49,12 @@ class HydroThermalEnvCont(gym.Env):
 
     SEED = None
 
-    def __init__(self, modo="markov", seed=None):
+    def __init__(self, modo="markov", seed=None, is_eval=False):
         super().__init__()
 
         self.SEED = seed
-        self.MODO = modo # 2. Sobrescribe el modo de la instancia
+        self.MODO = modo
+        self.is_eval = is_eval
         
         # Validación inmediata para detectar errores de configuración
         if self.DETERMINISTICO == 0 and self.MODO not in {"markov", "historico"}:
@@ -100,10 +100,6 @@ class HydroThermalEnvCont(gym.Env):
 
         self.indice_inicial_episodio = 0
         self.episodios_recorridos = 0
-
-        # PARA ENTRENAR 
-        # self.esc_sorteado = self.np_random.choice(np.arange(1,115))
-        # PARA EVALUAR
         self.esc_sorteado = 0
 
     def reset(self, seed=None, options=None):
@@ -111,11 +107,12 @@ class HydroThermalEnvCont(gym.Env):
         actual_seed = seed if seed is not None else self.SEED
         super().reset(seed=actual_seed)
 
-        # sortear el escenario entre 1 y 114
-        # PARA ENTRENAR
-        # self.esc_sorteado = self.np_random.choice(np.arange(1,115))
-        # PARA EVALUAR
-        self.esc_sorteado = (self.esc_sorteado % 114) + 1
+        if self.is_eval:
+            # PARA EVALUAR (Secuencial 1 al 114)
+            self.esc_sorteado = (self.esc_sorteado % 114) + 1
+        else:
+            # PARA ENTRENAR (Aleatorio)
+            self.esc_sorteado = self.np_random.choice(np.arange(1, 115))
 
         if options and "start_week" in options:
             self.indice_inicial_episodio = int(options["start_week"])
@@ -140,14 +137,6 @@ class HydroThermalEnvCont(gym.Env):
         }
 
         return self._get_obs(), info
-    
-    # def _costo_lago(self):
-    #     # Costo por mantener el lago bajo (volumen < 8000 hm3)
-    #     if self.volumen < 8000:
-    #         vol_penalizado = 8000 - self.volumen
-    #         return self.COSTO_LAGO_BAJO * vol_penalizado * self.K_CLAIRE # USD
-    #     else:
-    #         return 0
 
     def _inicial_hidrologia(self):
         if self.DETERMINISTICO == 1:
@@ -338,11 +327,7 @@ class HydroThermalEnvCont(gym.Env):
         energia_vertida = self.vertimiento * self.K_CLAIRE
         costo_vertimiento = energia_vertida * self.COSTO_VERTIMIENTO # USD
 
-        # costo_lago = self._costo_lago() # USD
-
         # Recompensa
-        # reward_usd = - costo_termico - costo_vertimiento + ingreso_exportacion - costo_lago # USD
-        # PARA EVALUAR DESCOMENTAR LO DE ABAJO Y COMENTAR LO DE ARRIBA
         reward_usd = - costo_termico - costo_vertimiento + ingreso_exportacion # USD
         reward = reward_usd / 1e6  # MUSD
 
@@ -362,7 +347,6 @@ class HydroThermalEnvCont(gym.Env):
             import matplotlib.pyplot as plt
             import numpy as np
             
-            # Crear figura temporal (no se mostrará en pantalla)
             fig, ax = plt.subplots(figsize=(6, 4), dpi=100)
             
             ax.bar(["Embalse Claire"], [self.V_CLAIRE_MAX], color="#E0E0E0", width=0.4)
