@@ -1,6 +1,7 @@
 # tools/plot_chronicle.py
 
 import os
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from tkinter import Image, Tk, filedialog
@@ -42,10 +43,11 @@ col_termico_bajo = "energia_termico_bajo"
 col_termico_alto = "energia_termico_alto"
 col_demanda = "demanda"
 col_aportes = "aportes"
-col_volumen = "volumen"
+# col_volumen = "volumen"
 
 # Eje X
-x = df.index
+# x = df.index
+x = np.arange(52)  # Índices para el año del medio solamente (de semana 52 a 103)
 
 # Configuración global de estilo
 # Requisitos CMES
@@ -65,54 +67,56 @@ fig, ax = plt.subplots(figsize=(6.5, 4.5), dpi=600, layout="constrained")
 # Áreas apiladas
 ax.stackplot(
     x,
-    df[col_turbinada]/1000,     # Hydro (azul por defecto)
-    df[col_termico_bajo]/1000,  # Thermal low-cost (naranja)
-    df[col_termico_alto]/1000,  # Thermal high-cost (verde)
-    df[col_renovable]/1000,      # Renewable (rojo)
+    df[col_turbinada].iloc[52:104]/1000,     
+    df[col_termico_bajo].iloc[52:104]/1000, 
+    df[col_termico_alto].iloc[52:104]/1000, 
+    df[col_renovable].iloc[52:104]/1000,    
     labels=["Hydro", "Thermal low-cost", "Thermal high-cost", "Renewable"],
-    colors=["#65a1ef", "#fbd1e7", "#ff0000", "#00ff00"]  # turquesa, rosa, rojo, verde
+    colors=["#65a1ef", "#e6df91", "#ed6749", "#6fc17e"]
 )
 
-# Demanda (negro)
-ax.plot(x, df[col_demanda]/1000, label="Demand", color="#000000", linewidth=2.4)
+ax.plot(x, df[col_demanda].iloc[52:104]/1000, label="Demand", color="#000000", linewidth=2.4)
 
 # Eje secundario
 ax2 = ax.twinx()
 
 ax.set_xlim(x.min(), x.max())
 
-# Inflows: marrón punteado
-ax2.plot(x, df[col_aportes], label="Inflows", color="#25802B", linestyle="--", linewidth=2.4)
+ax2.plot(x, df[col_aportes].iloc[52:104], label="Inflows", color="#157225", linestyle="--", linewidth=2.4)
 
-# Reservoir volume: **naranja continua**
-ax2.plot(x, df[col_volumen], label="Reservoir volume", color="#220eff", linestyle="-", linewidth=2.4)
+# ax2.plot(x, df[col_volumen].iloc[52:104], label="Reservoir volume", color="#394CB9", linestyle="-", linewidth=2.4)
 
-# Títulos y etiquetas (en inglés)
+# Títulos y etiquetas
 # ax.set_title("Out-of-sample policy performance under historical chronicle evaluation", pad=8)
 ax.set_xlabel("Week", labelpad=8)
 ax.set_ylabel("Energy (GWh)", labelpad=8)
 
-# Etiqueta del eje derecho más chica y con espacio extra para que no se corte
-ax2.set_ylabel("Volume (hm³) - Inflows (hm³/week)", labelpad=8)
+# ax2.set_ylabel("Volume (hm³) - Inflows (hm³/week)", labelpad=8)
+ax2.set_ylabel("Inflows (hm³/week)", labelpad=8)
 
-# Leyenda combinada, un poco más abajo para no chocar con 'Week'
+# Leyenda combinada
 h1, l1 = ax.get_legend_handles_labels()
 h2, l2 = ax2.get_legend_handles_labels()
 ax.legend(h1 + h2, l1 + l2, loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=4)
- 
-# Layout: más margen derecho y abajo para etiquetas y leyenda
+
 plt.tight_layout(rect=[0, 0, 0.98, 1])  # deja 2% libre a la derecha
 fig.subplots_adjust(right=0.89, bottom=0.28)
 
 # Guardado
 alg = "ppo" # Cambiar según el algoritmo usado
-modo_eval = "Historico" # Historico o Markov o Deterministico
-final_nombre = "est_promedio_hist"
+modo_eval = "Markov" # Historico o Markov o Deterministico
+final_nombre = "est_promedio_markov"
+
+# PARA GRAFICA MOP
+# final_nombre = "est_promedio_markov_MOP"
 
 os.makedirs(f"results/figures/{alg}/chronicles/{modo_eval}", exist_ok=True)
 plt.savefig(f"results/figures/{alg}/chronicles/{modo_eval}/dispatch_evaluation_{final_nombre}.pdf", bbox_inches="tight")  # vectorial para el paper
-
 tiff_path = f"results/figures/{alg}/chronicles/{modo_eval}/dispatch_evaluation_{final_nombre}.tif"
+
+# PARA GRAFICA MOP
+# plt.savefig(f"corrida_mop/dispatch_evaluation_{final_nombre}.pdf", bbox_inches="tight") 
+# tiff_path = f"corrida_mop/dispatch_evaluation_{final_nombre}.tif"
 
 # compression='tiff_lzw': Recomendado para que el archivo no pese 100MB (sin perder calidad)
 plt.savefig(
