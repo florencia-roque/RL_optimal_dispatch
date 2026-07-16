@@ -1,12 +1,17 @@
 # tools/mann_whitney_test.py
 
+import sys
+import os
+# Agregar la carpeta raíz (RL_optimal_dispatch) al path de Python
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import pandas as pd
 from scipy.stats import mannwhitneyu
 from src.utils.config import EVALUATIONS
 
 # ubicaciones de escenarios para ppo y q-learning
-eval_dir_ql = EVALUATIONS / "ql" / "eval_2026-07-01_14-07-41_est_historico"
-eval_dir_ppo = EVALUATIONS / "ppo" / "eval_2026-06-30_23-44-43_est_historico"
+eval_dir_ql = EVALUATIONS / "ql" / "eval_2026-07-13_09-22-40_est_historico"
+eval_dir_ppo = EVALUATIONS / "ppo" / "eval_2026-07-13_08-48-54_est_historico"
 
 rewards_por_escenario_ppo = []
 rewards_por_escenario_ql = []
