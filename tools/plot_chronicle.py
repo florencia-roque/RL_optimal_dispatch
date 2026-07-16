@@ -53,12 +53,12 @@ x = np.arange(52)  # Índices para el año del medio solamente (de semana 52 a 1
 # Requisitos CMES
 plt.rcParams.update({
     "font.family": "Arial",   
-    "font.size": 10,          
-    "axes.titlesize": 11,     
-    "axes.labelsize": 10,     
-    "xtick.labelsize": 9,     
-    "ytick.labelsize": 9,
-    "legend.fontsize": 9,
+    "font.size": 14,          
+    "axes.titlesize": 14,     
+    "axes.labelsize": 14,     
+    "xtick.labelsize": 14,     
+    "ytick.labelsize": 14,
+    "legend.fontsize": 14,
 })        
 
 # Crear figura alta resolución
@@ -97,7 +97,7 @@ ax2.set_ylabel("Inflows (hm³/week)", labelpad=8)
 # Leyenda combinada
 h1, l1 = ax.get_legend_handles_labels()
 h2, l2 = ax2.get_legend_handles_labels()
-ax.legend(h1 + h2, l1 + l2, loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=4)
+ax.legend(h1 + h2, l1 + l2, loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=3)
 
 plt.tight_layout(rect=[0, 0, 0.98, 1])  # deja 2% libre a la derecha
 fig.subplots_adjust(right=0.89, bottom=0.28)
