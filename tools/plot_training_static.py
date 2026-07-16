@@ -40,17 +40,17 @@ class StaticTrainingPlotter:
         fig, ax = plt.subplots(figsize=(6.5, 4.5), dpi=600, layout="constrained")
         
         # Graficar datos
-        # Reward instantáneo (Gris)
+        # Reward instantáneo
         ax.plot(
             self.df['episode'], 
             self.df['reward'], 
-            lw=0.8, # Línea un poco más fina para estático se ve mejor
-            color="#686868", 
+            lw=0.8,
+            color="#D599AF", 
             alpha=0.5, 
             label="Reward"
         )
         
-        # Media Móvil (Rojo Oscuro)
+        # Media Móvil
         # Usamos la columna 'moving_avg' si existe, si no la recalculamos
         if 'moving_avg' in self.df.columns:
             y_avg = self.df['moving_avg']
@@ -65,7 +65,7 @@ class StaticTrainingPlotter:
             self.df['episode'], 
             y_avg, 
             lw=1.5, 
-            color='#D32F2F', 
+            color="#676565", 
             label=win_txt if window_label is None else f"Moving average ({window_label})"
         )
 
@@ -74,8 +74,8 @@ class StaticTrainingPlotter:
         ax.grid(True, linestyle='--', alpha=0.6)
         ax.legend()
         
-        # Guardamos en la misma carpeta que el CSV, subcarpeta 'high_res'
-        output_dir = self.csv_path.parent / "high_res"
+        # Guardamos en la misma carpeta que el CSV, subcarpeta "training_plots"
+        output_dir = self.csv_path.parent / "training_plots"
         output_dir.mkdir(exist_ok=True)
         
         base_name = self.csv_path.stem
