@@ -67,7 +67,7 @@ class HydroThermalEnvTab(gym.Env):
 
         self.N_BINS_VOL = 10
         self.VOL_EDGES = np.linspace(self.V_CLAIRE_MIN, self.V_CLAIRE_MAX, self.N_BINS_VOL + 1)
-        self.N_STATES = self.N_BINS_VOL * self.N_HIDRO * (self.T_MAX + 1)
+        self.N_STATES = self.N_BINS_VOL * self.N_HIDRO * self.T_MAX
         self.N_ACTIONS = 20
 
         # Espacio de observación
@@ -348,7 +348,7 @@ class HydroThermalEnvTab(gym.Env):
         reward_usd = - costo_termico - costo_vertimiento + ingreso_exportacion  # USD
         reward = reward_usd / 1e6  # MUSD
 
-        terminated = self.tiempo >= self.T_MAX
+        terminated = self.tiempo >= self.T_MAX - 1
         truncated = False
         return self._get_obs(), reward, terminated, truncated, info
     

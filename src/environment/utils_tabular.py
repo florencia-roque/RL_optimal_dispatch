@@ -19,7 +19,7 @@ def codificar_estados(
     tiempo: int,
     ) -> int:
     """
-    Codifica (v_bin, h, t) -> idx en [0, N_BINS_VOL*N_HIDRO*(T_MAX+1)-1]
+    Codifica (v_bin, h, t) -> idx en [0, (N_BINS_VOL*N_HIDRO*T_MAX)-1]
     """
     idx = volumen_discreto + N_BINS_VOL * (hidrologia + N_HIDRO * tiempo)
     return int(idx)
@@ -45,4 +45,4 @@ def politica_cubo(env, policy: np.ndarray) -> np.ndarray:
     Reordena policy (shape [N_STATES]) a cubo [t, h, v].
     """
     inner = env.unwrapped
-    return policy.reshape(inner.T_MAX + 1, inner.N_HIDRO, inner.N_BINS_VOL)
+    return policy.reshape(inner.T_MAX, inner.N_HIDRO, inner.N_BINS_VOL)
